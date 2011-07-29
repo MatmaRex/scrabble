@@ -1,0 +1,11 @@
+* slownik
+* blanki
+* historia gry
+* legenda
+
+OK:
+* premie 50
+* premie 2x itp tylko raz
+* poruszanie strzalkami po planszy
+* odswiezanie punktow graczy
+
