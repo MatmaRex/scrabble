@@ -1,6 +1,5 @@
-* slownik
+
 * blanki
-* historia gry
 * legenda
 
 OK:
@@ -8,4 +7,5 @@ OK:
 * premie 2x itp tylko raz
 * poruszanie strzalkami po planszy
 * odswiezanie punktow graczy
-
+* slownik
+* historia gry

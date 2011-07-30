@@ -85,9 +85,7 @@ module ScrabbleWeb
 				
 				board = @game.board.board
 				hsh = {}
-				hsh['whoseturn'] = @game.players[@game.whoseturn][:name]
-				hsh['letterleft'] = @game.board.letter_queue.length
-				hsh['updateable'] = render(:_gameinfo).to_s + render(:_players).to_s
+				hsh['updateable'] = render(:_gameinfo).to_s + render(:_players).to_s + render(:_history).to_s
 				
 				board.each_index do |row|
 					board[row].each_index do |col|
@@ -140,26 +138,29 @@ module ScrabbleWeb
 					
 					@request.params.each_pair do |id, lett|
 						if id =~ /^\d+-\d+$/
-							letts << (id.split('-').reverse.map(&:to_i) + [lett]) unless !lett or lett==''
+							row, col = id.split('-').map(&:to_i)
+							
+							if lett and lett!='' and @game.board[row][col]==nil
+								letts << [col, row, lett]
+							end
 						end
 					end
+					
+					return 'You did nothing?' if letts.empty?
 					
 					begin
 						# this will raise Scrabble::WordError if anything's not right
 						words = @game.board.check_word letts, @loggedinas[:letters], true
 						# if we get here, we can assume all words are correct
 						
-						# TODO: make a view for this / history
-						# for output
-						# we need to do this now since later board changes and scores are wrong
-						out = words.inspect + '<br>' + words.map(&:score).inject(&:+).to_s + (letts.length==7 ? "+50 bingo!" : '') + '<br>'
-						
 						
 						# TODO: move all this to Game class
 						
 						# sum up points
-						@loggedinas[:points] += words.map(&:score).inject(&:+)
-						@loggedinas[:points] += 50 if letts.length==7 # "bingo"
+						score = words.map(&:score).inject(&:+) + (letts.length==7 ? 50 : 0) # "bingo"
+						@loggedinas[:points] += score
+						
+						
 						
 						# which player goes next?
 						@game.whoseturn = (@game.whoseturn+1) % @game.players.length
@@ -170,32 +171,40 @@ module ScrabbleWeb
 						end
 						
 						# remove used letters from rack, get new ones
+						rack = @loggedinas[:letters].clone
+						
 						letts.each do |_, _, let|
 							@loggedinas[:letters].delete_at @loggedinas[:letters].index let
 						end
 						@loggedinas[:letters] += @game.board.letter_queue.shift(7 - @loggedinas[:letters].length)
 						
 						
+						# save the move data in history
+						@game.history ||= [] # WORKAROUND FOR OLD GAMES
+						@game.history << Scrabble::HistoryEntry.new(:word, rack, words, score)
+						
 						# save changes
 						File.open(@fname, 'wb'){|f| f.write Marshal.dump @game}
 						
-						return out + get(@gamename)
+						redirect "/#{@gamename}"
 						
 					rescue Scrabble::WordError => e
 						return 'Incorrect move.'.encode('utf-8') + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
 					end
 				
 				elsif @request['mode'] == 'Pas/Wymiana'
-					return "can't change if less than 7 letters left" if @game.board.letter_queue.length<7
-					
 					ch = @request['change'].upcase_pl.gsub(/\s/, '').split('')
 					add = []
+					
+					rack = @loggedinas[:letters].clone
 					
 					# ch may contain other stuff, apart from letters. make sure we have letters,
 					# then remove them from rack and add to queue
 					ch.each do |let|
 						ind = @loggedinas[:letters].index let
 						if ind
+							return "can't change if less than 7 letters left" if @game.board.letter_queue.length<7
+							
 							@loggedinas[:letters].delete_at ind
 							add << let
 						end
@@ -210,12 +219,19 @@ module ScrabbleWeb
 					@game.whoseturn = (@game.whoseturn+1) % @game.players.length
 					
 					
+					# save the move data in history
+					@game.history ||= [] # WORKAROUND FOR OLD GAMES
+					@game.history << Scrabble::HistoryEntry.new(((add.empty? ? :pass : :change)), rack, add.length, nil)
+					
 					# save changes
 					File.open(@fname, 'wb'){|f| f.write Marshal.dump @game}
 					
-					return (add.empty? ? 'Pas.' : "Wymieniono #{add.join ' '}.") + get(@gamename)
+					redirect "/#{@gamename}"
 					
 				end
+			
+			rescue
+				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
 			end
 		end
 		
@@ -282,11 +298,14 @@ module ScrabbleWeb
 						id = "#{row}-#{col}"
 						
 						opts = {
-							:class=>(@game.board.boardtpl[row][col]).to_s, id:id, name:id,
-							size:1, maxlength:1,
-							value: board[row][col]
+							:class=>(@game.board.boardtpl[row][col]).to_s,
+							id:id, name:id,
+							size:1, maxlength:1
 						}
-						opts.merge!(disabled: 'disabled') if !(board[row][col].nil?)
+						if board[row][col]
+							opts.merge!(readonly: 'readonly', value: board[row][col])
+							opts[:class] += ' disab'
+						end
 						
 						input opts
 					end
@@ -329,6 +348,34 @@ module ScrabbleWeb
 			p.letterleft! "Zostało: #{@game.board.letter_queue.length} liter"
 		end
 		
+		def _history
+			table.history! do
+				tr do
+					@game.players.each do |pl|
+						th pl[:name]
+					end
+				end
+				
+				@game.history.each_slice(@game.players.length) do |slice|
+					tr do
+						slice.each do |entry|
+							td do
+								if entry.mode == :word
+									"#{entry.score} punktów: #{entry.words.map{|w| w.letters.join ''}.join ', '}"
+								elsif entry.mode == :pass
+									"Pas."
+								elsif entry.mode == :change
+									"Wymienił(a) #{entry.changed_count} liter."
+								end
+							end
+						end
+					end
+				end
+			end
+		rescue
+			text ''
+		end
+		
 		def game
 			form method:'post', action:R(Game, @gamename) do
 				_board
@@ -346,6 +393,7 @@ module ScrabbleWeb
 			div.updateable! do
 				_gameinfo
 				_players
+				_history
 			end
 			
 			if !@loggedinas

@@ -2,25 +2,22 @@ function scrabble_callback(hsh)
 {
 	for(i in hsh)
 	{
-		if(i.match(/^\d+-\d+$/) && !document.getElementById(i).disabled)
+		if(i.match(/^\d+-\d+$/) && !document.getElementById(i).readonly)
 		{
 			document.getElementById(i).value = hsh[i]
-			document.getElementById(i).disabled = true
+			document.getElementById(i).readonly = true
+			document.getElementById(i).className += ' disab'
 		}
 	}
 	
-	document.getElementById('whoseturn').firstChild.nodeValue = 'Teraz: '+hsh['whoseturn']
-	document.getElementById('letterleft').firstChild.nodeValue = 'Zostało: '+hsh['letterleft']+' liter'
 	document.getElementById('updateable').innerHTML = hsh['updateable']
-	
-	document.getElementById('whoseturn').style.cssText = 'color:red; font-weight:bold'
 }
 
 function scrabble_check()
 {
 	s = document.createElement('script')
 	s.type = 'text/javascript'
-	s.src = '/micro!/'+gamename
+	s.src = '/micro!/'+gamename+'?'+Math.random()
 	document.getElementsByTagName('head')[0].appendChild(s)
 }
 
@@ -43,7 +40,7 @@ function arrow_listener(e, _forced_target)
 		
 		if(nextel)
 		{
-			if(nextel.disabled)
+			if(nextel.readonly)
 			{
 				dummy = {preventDefault: function(){}, keyCode: e.keyCode}
 				arrow_listener(dummy, nextel)

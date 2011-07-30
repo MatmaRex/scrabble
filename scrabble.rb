@@ -1,6 +1,7 @@
 # coding: utf-8
 require 'set'
 require 'rufus-mnemo'
+require 'rest-client'
 
 
 class String
@@ -285,9 +286,12 @@ module Scrabble
 			end
 			
 			#5. check the words in dictionary
-			if @dict
-				unless words.all?{|w| @dict.include? w}
-					raise WordError, '5. not a correct word'
+			base = 'http://www.sjp.pl/'
+			dop = %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
+			
+			words.each do |w|
+				unless (RestClient.get base+(CGI.escape w.letters.join(''))) =~ dop
+					raise WordError, '5. incorrect word: '+ w.letters.join('')
 				end
 			end
 			
@@ -317,9 +321,23 @@ module Scrabble
 		
 	end
 	
+	class HistoryEntry
+		attr_accessor :mode, :rack, :words, :score
+		def initialize mode, rack, words, score
+			@mode, @rack, @words, @score = mode, rack, words, score
+		end
+		# alias - for exchanges
+		def changed_count; words; end
+		def changed_count=a; words=a; end
+	end
+	
 	class Game
 		attr_accessor :board, :players, :whoseturn
+		attr_accessor :history
+		
 		def initialize playercount, mode = :scrabble
+			@history = []
+			
 			@players = []
 			@board = Board.new
 			@whoseturn = 0
