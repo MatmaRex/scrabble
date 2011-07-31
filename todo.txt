@@ -1,5 +1,4 @@
 
-* blanki
 * legenda
 
 OK:
@@ -9,3 +8,4 @@ OK:
 * odswiezanie punktow graczy
 * slownik
 * historia gry
+* blanki

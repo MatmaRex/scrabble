@@ -2,11 +2,13 @@ function scrabble_callback(hsh)
 {
 	for(i in hsh)
 	{
-		if(i.match(/^\d+-\d+$/) && !document.getElementById(i).readonly)
+		el = document.getElementById(i)
+		
+		if(i.match(/^\d+-\d+$/) && !el.readonly)
 		{
-			document.getElementById(i).value = hsh[i]
-			document.getElementById(i).readonly = true
-			document.getElementById(i).className += ' disab'
+			el.value = hsh[i]
+			el.readonly = true
+			el.className = el.className.replace('enab', 'disab')
 		}
 	}
 	

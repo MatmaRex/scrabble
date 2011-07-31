@@ -1,5 +1,4 @@
 # coding: utf-8
-require 'set'
 require 'rufus-mnemo'
 require 'rest-client'
 
@@ -11,20 +10,6 @@ class String
 	def downcase_pl
 		downcase.tr('ĄŻŚŹĘĆŃÓŁ', 'ążśźęćńół')
 	end
-end
-
-def load_dict
-	# ugly, but oh well
-	if !$dict
-		data = File.open('slowa-win.txt', 'rb'){|f| f.readlines}
-		data.map!{|s| s.force_encoding 'CP1250'}
-		data.each{|s| s.chomp!}
-		
-		$dict = Set.new data
-		GC.start
-	end
-	
-	return $dict
 end
 
 module Scrabble
@@ -57,8 +42,9 @@ module Scrabble
 				type = @board.boardtpl[row][col]
 				
 				multi = @board.multis_used[row][col] ? 1 : (type==:dl ? 2 : type==:tl ? 3 : 1)
-					
-				@board.letters_to_points[letter] * multi
+				
+				# for blanks, aka lowercase letters, this will be 0
+				(@board.letters_to_points[letter]||0) * multi
 			end
 			
 			word_multis = letters.map.with_index do |letter, ind|
@@ -81,7 +67,7 @@ module Scrabble
 	
 	class Board
 		attr_accessor :board, :boardtpl, :points_to_letters, :letters_to_points, :dict
-		attr_accessor :letter_freq, :letter_queue, :multis_used
+		attr_accessor :letter_freq, :letter_queue, :multis_used, :blank_replac
 		
 		def initialize board = Array.new(15){Array.new 15}
 			@boardtpl = %w[
@@ -109,7 +95,8 @@ module Scrabble
 				'Ą'=>1, 'Ę'=>1, 'F'=>1, 'Ó'=>1, 'Ś'=>1, 'Ż'=>1,
 				'Ć'=>1,
 				'Ń'=>1,
-				'Ź'=>1
+				'Ź'=>1,
+				'?'=>2,
 			}
 			
 			@points_to_letters = {
@@ -120,17 +107,18 @@ module Scrabble
 				6 => %w[Ć],
 				7 => %w[Ń],
 				9 => %w[Ź],
+				0 => %w[?],
 			}
 			
 			@letters_to_points = {}
 			@points_to_letters.each_pair{|val, letters| letters.each{|let| @letters_to_points[let]=val} }
 			
-			# @dict = load_dict
-			
 			@board = board
 			@multis_used = Array.new(15){Array.new(15){false} }
 			
 			@letter_queue = @letter_freq.to_a.map{|let, n| [let]*n }.flatten.shuffle
+			
+			@blank_replac = {} # {[row, col] => 'X', ...}
 		end
 		
 		# WORKAROUND FOR OLD GAMES
@@ -170,9 +158,10 @@ module Scrabble
 			return major_word
 		end
 		
-		def check_word letters, rack, do_write=false
+		def check_word letters, rack, blank_replac, do_write=false
 			# letters - array of col, row, letter
 			# rack - array of letters
+			# blank_replac - array of letters
 			
 			letters.map{|arr| arr[2] = arr[2].upcase_pl}
 			
@@ -285,9 +274,39 @@ module Scrabble
 				raise WordError, "4. one-letter words not allowed / you didn't really create a word"
 			end
 			
-			#5. check the words in dictionary
+			# 5. check the words in dictionary
 			base = 'http://www.sjp.pl/'
 			dop = %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
+			
+			# only now we have to substitute the blanks
+			# sort - first the topmost, leftmost, horizontal words
+			words = words.sort_by{|w| [w.row, w.col, (w.direction==:verti ? 2 : 1)]}
+			# now, go thru the word list, marking (on the board) where the blanks were used
+			words.each do |w|
+				w.letters.each_with_index do |let, ind|
+					next if let!='?'
+					
+					if w.direction==:verti
+						col = w.col
+						row = w.row + ind
+					else
+						col = w.col + ind
+						row = w.row
+					end
+					
+					key = [row, col]
+					# if this blank wasn't parsed yet
+					if !@blank_replac[key]
+						raise WordError, '5. no blank replacement given' if blank_replac.empty?
+						@blank_replac[key] = blank_replac.shift
+					end
+					
+					# for word checking and history, replace the blank with a letter
+					# lowercase indicates this is a blank
+					w.letters[ind] = @blank_replac[key].downcase_pl
+				end
+				
+			end
 			
 			words.each do |w|
 				unless (RestClient.get base+(CGI.escape w.letters.join(''))) =~ dop

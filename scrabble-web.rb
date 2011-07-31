@@ -90,7 +90,7 @@ module ScrabbleWeb
 				board.each_index do |row|
 					board[row].each_index do |col|
 						id = "#{row}-#{col}"
-						hsh[id] = board[row][col] if board[row][col]
+						hsh[id] = (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col]) if board[row][col]
 					end
 				end
 				
@@ -146,11 +146,14 @@ module ScrabbleWeb
 						end
 					end
 					
+					blank_replac = (@request['blank_replac']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
+					# blank_replac = []
+					
 					return 'You did nothing?' if letts.empty?
 					
 					begin
 						# this will raise Scrabble::WordError if anything's not right
-						words = @game.board.check_word letts, @loggedinas[:letters], true
+						words = @game.board.check_word letts, @loggedinas[:letters], blank_replac, true
 						# if we get here, we can assume all words are correct
 						
 						
@@ -303,8 +306,11 @@ module ScrabbleWeb
 							size:1, maxlength:1
 						}
 						if board[row][col]
-							opts.merge!(readonly: 'readonly', value: board[row][col])
+							opts.merge!(readonly: 'readonly')
+							opts.merge!(value: (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col]))
 							opts[:class] += ' disab'
+						else
+							opts[:class] += ' enab'
 						end
 						
 						input opts
@@ -379,8 +385,17 @@ module ScrabbleWeb
 		def game
 			form method:'post', action:R(Game, @gamename) do
 				_board
-				
 				br
+				
+				if @loggedinas and @loggedinas[:letters].include? '?'
+					text 'Jeśli używasz blanka, wpisz tu, jaką literą chcesz go zastąpić: '
+					input.blank_replac!
+					if @loggedinas[:letters].count('?') > 1
+						text ' (jeśli używasz więcej niż jednego, wpisz dwie litery; najpierw podaj literę dla tego blanka, który jest bliżej lewej strony lub góry planszy)'
+					end
+				end
+				br
+				
 				if @loggedinas
 					input name:'mode', type:'submit', value:'OK'
 					input type:'reset', value:'Od nowa'

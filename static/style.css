@@ -1,6 +1,7 @@
 #board{width: 500px } /* force full no-line-breaks display on Opera Mini */
 
-#board input{border:3px double grey; text-align:center; color:black; text-transform:uppercase}
+#board input{border:3px double grey; text-align:center; color:black}
+#board input.enab{text-transform:uppercase}
 
 #board input{display:block; float:left; margin:1px; width:30px; height:30px}
 #board br{clear:both}
@@ -8,7 +9,7 @@
 #board input{font-weight:bold; font-size:20px}
 #board input.disab{font-weight:normal; font-size:15px}
 
-#board input:not(.disab):focus{background:yellow; color:black}
+#board input.enab:focus{background:yellow; color:black}
 
 
 #board .nn{background:white}
