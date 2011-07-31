@@ -147,7 +147,6 @@ module ScrabbleWeb
 					end
 					
 					blank_replac = (@request['blank_replac']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
-					# blank_replac = []
 					
 					return 'You did nothing?' if letts.empty?
 					
@@ -183,7 +182,6 @@ module ScrabbleWeb
 						
 						
 						# save the move data in history
-						@game.history ||= [] # WORKAROUND FOR OLD GAMES
 						@game.history << Scrabble::HistoryEntry.new(:word, rack, words, score)
 						
 						# save changes
@@ -223,7 +221,6 @@ module ScrabbleWeb
 					
 					
 					# save the move data in history
-					@game.history ||= [] # WORKAROUND FOR OLD GAMES
 					@game.history << Scrabble::HistoryEntry.new(((add.empty? ? :pass : :change)), rack, add.length, nil)
 					
 					# save changes

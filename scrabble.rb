@@ -121,12 +121,6 @@ module Scrabble
 			@blank_replac = {} # {[row, col] => 'X', ...}
 		end
 		
-		# WORKAROUND FOR OLD GAMES
-		def multis_used
-			@multis_used ||= @board.map{|a| a.map{|b| !!b} }
-			@multis_used
-		end
-		
 		def clone
 			Board.new(@board.dup.map &:dup) # deep-clone
 		end
