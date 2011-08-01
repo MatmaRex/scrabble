@@ -6,9 +6,9 @@ function scrabble_callback(hsh)
 		
 		if(i.match(/^\d+-\d+$/) && !el.readonly)
 		{
-			el.value = hsh[i]
-			el.readonly = true
 			el.className = el.className.replace('enab', 'disab')
+			el.readonly = true
+			el.value = hsh[i]
 		}
 	}
 	

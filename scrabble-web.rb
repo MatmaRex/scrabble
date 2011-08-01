@@ -44,13 +44,14 @@ module ScrabbleWeb
 			def post
 				gamename = @request['gamename']
 				playercount = @request['players'].to_i
+				playernames = [ @request['player0'], @request['player1'], @request['player2'], @request['player3'] ]
 				fname = "./#{gamename}-game"
 				
 				return 'Players?' unless (2..4).include? playercount
 				
 				if gamename =~ /\A[a-zA-Z0-9_-]+\Z/
 					if !File.exist? fname
-						game = Scrabble::Game.new playercount
+						game = Scrabble::Game.new playercount, playernames
 						@cookies["game-#{gamename}-playerid"] = 0
 						@cookies["game-#{gamename}-password"] = game.players[0][:password]
 						
@@ -120,6 +121,27 @@ module ScrabbleWeb
 				err = common()
 				return err if err
 				
+				if @game.over? and !@game.finished
+					@game.finished = true
+					
+					tgt = @game.players.select{|pl| pl[:letters].empty? }[0]
+					
+					adj = @game.players.map{|pl| pl[:letters].map{|lt| @game.board.letters_to_points[lt]}.inject(0, &:+) * -1  }
+					adj[tgt[:id] ] = (adj.inject &:+) * -1
+					
+					@game.players.each_with_index do |pl, i|
+						pl[:points] += adj[i]
+					end
+					
+					
+					adj.rotate! @game.whoseturn
+					@game.history += adj.map{|pt| Scrabble::HistoryEntry.new(:adj, nil, nil, pt)}
+				
+					# save changes
+					File.open(@fname, 'wb'){|f| f.write Marshal.dump @game}
+				end
+				
+				
 				render :game
 			rescue
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
@@ -132,6 +154,7 @@ module ScrabbleWeb
 				
 				return 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
 				return 'Game already over.' if @game.over?
+				
 				
 				if @request['mode'] == 'OK'
 					letts = []
@@ -277,14 +300,18 @@ module ScrabbleWeb
 		
 		def home
 			p 'Sup.'
-			p 'List of games:'
+			p 'Lista gier:'
 			ul do
 				@gamelist.each{|game| li{a game, href:"/#{game}"} }
 			end
-			p 'Create new:'
-			form method:'post', action:'/new!' do
-				text 'Game name: '; input.gamename!; br
-				text 'Players count: '; input.players!; br
+			p 'Utwórz nową:'
+			form.create! method:'post', action:'/new!' do
+				text 'Nazwa gry: '; input.gamename!; br
+				text 'Liczba graczy: '; input.players!; br
+				text 'Nicki kolejnych graczy (opcj.): '
+				(0..3).each do |i|
+					input name:"player#{i}"; text ' '
+				end
 				input type:'submit'
 			end
 		end
@@ -319,7 +346,7 @@ module ScrabbleWeb
 		
 		def _players
 			@game.players.each do |plhash|
-				div.player do
+				div 'class'=>(@loggedinas==plhash ? 'you' : 'player') do
 					if @loggedinas==plhash
 						p{b plhash[:name]}
 					else
@@ -369,6 +396,8 @@ module ScrabbleWeb
 									"Pas."
 								elsif entry.mode == :change
 									"Wymienił(a) #{entry.changed_count} liter."
+								elsif entry.mode == :adj
+									"#{entry.score>0 ? '+' : '-'}#{entry.score.abs}"
 								end
 							end
 						end

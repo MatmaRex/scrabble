@@ -19,8 +19,13 @@
 #board .tl{background:blue; color:white}
 
 
-.player{width:200px; float:left; margin:10px; padding:5px; border:1px solid black}
-.player p{margin:0}
+.player, .you{width:200px; float:left; margin:10px; padding:5px; border:1px solid black}
+.player p, .you p{margin:0}
+.player{border-color:navy; background:#ddf}
+.you{border-color:maroon; background:#fdd}
 
 #joingame, #history{clear:both}
 
+
+
+#create{margin-left:1em}

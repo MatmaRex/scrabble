@@ -347,8 +347,9 @@ module Scrabble
 	class Game
 		attr_accessor :board, :players, :whoseturn
 		attr_accessor :history
+		attr_accessor :finished
 		
-		def initialize playercount, mode = :scrabble
+		def initialize playercount, playernames, mode = :scrabble
 			@history = []
 			
 			@players = []
@@ -358,7 +359,7 @@ module Scrabble
 			playercount.times do |i|
 				@players[i] = {
 					id: i,
-					name: "Player #{i+1}",
+					name: (playernames[i] and playernames[i]!='' ? playernames[i].strip : "Player #{i+1}"),
 					points: 0,
 					letters: [],
 					password: Rufus::Mnemo.from_integer(rand(1e6)),
