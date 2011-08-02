@@ -18,7 +18,7 @@ require 'camping'
 
 
 def fname_for gamename
-	($production ? './tmp/' : './games/') + "#{gamename}-game"
+	'./games/' + "#{gamename}-game"
 end
 
 def get_game gamename
