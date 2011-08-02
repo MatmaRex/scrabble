@@ -20,7 +20,7 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board .dl{background:lightblue}
 #board .tl{background:blue; color:white}
 
-#board .hilit{background-image:url('/hilit.gif')}
+#board .hilit{background-image:url('/static/hilit.gif')}
 
 
 

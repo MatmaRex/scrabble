@@ -37,32 +37,8 @@ end
 Camping.goes :ScrabbleWeb
 
 module ScrabbleWeb
+	use Rack::Static, urls:['/static']
 	module Controllers
-		class StyleCss < R '/style.css'
-			def get
-				@headers['Content-Type']='text/css'
-				File.read 'static/style.css'
-			end
-		end
-		class ScriptJs < R '/script.js'
-			def get
-				@headers['Content-Type']='text/javascript'
-				File.read 'static/script.js'
-			end
-		end
-		class ArrowGif < R '/arrow.gif'
-			def get
-				@headers['Content-Type']='image/gif'
-				File.binread 'static/arrow.gif'
-			end
-		end
-		class HilitGif < R '/hilit.gif'
-			def get
-				@headers['Content-Type']='image/gif'
-				File.binread 'static/hilit.gif'
-			end
-		end
-		
 		class Index
 			def get
 				@gamelist = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
@@ -346,8 +322,8 @@ module ScrabbleWeb
 			html do
 				head do
 					title(@pagetitle ? "#{@pagetitle} - Scrabble" : "Scrabble")
-					link rel:'stylesheet', type:'text/css', href:'/style.css'
-					script '', type:'text/javascript', src:'/script.js'
+					link rel:'stylesheet', type:'text/css', href:'/static/style.css'
+					script '', type:'text/javascript', src:'/static/script.js'
 				end
 				body do
 					yield
@@ -405,14 +381,14 @@ module ScrabbleWeb
 			div.players! do
 				@game.players.each do |plhash|
 					theclass = [
-						'player', 
+						'player',
 						(@loggedinas==plhash ? 'you' : ''),
 						(@game.is_winner?(plhash) ? 'winner' : '')
 					].join ' '
 					
 					div 'class' => theclass do
 						if plhash[:id] == @game.whoseturn and !@game.over?
-							img.currentimg src:'/arrow.gif'
+							img.currentimg src:'/static/arrow.gif'
 						end
 						
 						if @loggedinas==plhash
