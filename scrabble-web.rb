@@ -164,6 +164,8 @@ module ScrabbleWeb
 					@game = get_game @gamename
 				end
 				
+				@pagetitle = @gamename
+				
 				playerid, password = @cookies["game-#{@gamename}-playerid"].to_i, @cookies["game-#{@gamename}-password"]
 				@loggedinas = @game.players.select.with_index{|pl, id| id==playerid and pl[:password]==password}[0]
 				
@@ -343,7 +345,7 @@ module ScrabbleWeb
 		def layout
 			html do
 				head do
-					title(@pagetitle ? "Scrabble - #{@pagetitle}" : "Scrabble")
+					title(@pagetitle ? "#{@pagetitle} - Scrabble" : "Scrabble")
 					link rel:'stylesheet', type:'text/css', href:'/style.css'
 					script '', type:'text/javascript', src:'/script.js'
 				end
