@@ -3,14 +3,16 @@ hist_len = -1
 function scrabble_callback(hsh)
 {
 	hist_len = hsh['hist_len']
+	hilit = document.getElementsByClassName('hilit')
+	while(hilit[0]) hilit[0].className = hilit[0].className.replace('hilit', '')
 	
 	for(i in hsh)
 	{
 		el = document.getElementById(i)
 		
-		if(i.match(/^\d+-\d+$/) && !el.readonly)
+		if(i.match(/^\d+-\d+$/) && !el.readonly && el.value!=hsh[i])
 		{
-			el.className = el.className.replace('enab', 'disab')
+			el.className = el.className.replace('enab', 'disab') + ' hilit'
 			el.readonly = true
 			el.value = hsh[i]
 		}

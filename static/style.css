@@ -9,8 +9,8 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board input{display:block; float:left; margin:1px; width:30px; height:30px}
 #board br{clear:both}
 
-#board input{font-weight:bold; font-size:20px}
-#board input.disab{font-weight:normal; font-size:15px}
+#board input.enab{font-size:20px}
+#board input.disab{font-size:15px}
 
 #board input.enab:focus{background:yellow; color:black}
 
@@ -20,6 +20,8 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board .dl{background:lightblue}
 #board .tl{background:blue; color:white}
 
+#board .hilit{background-image:url('/hilit.gif')}
+
 
 
 #players{}
@@ -27,7 +29,7 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 .player p, .you p{margin:0}
 .player{border-color:navy; background:#ddf}
 .you{border-color:maroon; background:#fdd}
-.youimg{display:block; margin:0 auto; margin-top:-35px; margin-bottom:8px}
+.currentimg{display:block; margin:0 auto; margin-top:-35px; margin-bottom:8px}
 
 #create{margin-left:1em}
 #history{position:absolute; top:10px; left:500px}

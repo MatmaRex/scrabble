@@ -1,8 +1,5 @@
 * podwojny pas
-* legenda
 
-* podswietlac graczy przy ruchu
-* ostatine slowo na planszy kolorem
 * oznaczaca zwyciezce (podium?)
 
 
@@ -14,3 +11,6 @@ OK:
 * slownik
 * historia gry
 * blanki
+* legenda
+* podswietlac graczy przy ruchu
+* ostatine slowo na planszy kolorem

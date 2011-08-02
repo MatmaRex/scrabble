@@ -56,10 +56,16 @@ module ScrabbleWeb
 				File.binread 'static/arrow.gif'
 			end
 		end
+		class HilitGif < R '/hilit.gif'
+			def get
+				@headers['Content-Type']='image/gif'
+				File.binread 'static/hilit.gif'
+			end
+		end
 		
 		class Index
 			def get
-				@gamelist = Dir['*-game'].map{|a| a.sub(/-game\Z/, '')}
+				@gamelist = Dir.entries('games').map{|a| a.sub(/-game\Z/, '')}
 				render :home
 			end
 		end
@@ -375,8 +381,11 @@ module ScrabbleWeb
 			div.players! do
 				@game.players.each do |plhash|
 					div 'class'=>(@loggedinas==plhash ? 'you' : 'player') do
+						if plhash[:id] == @game.whoseturn
+							img.currentimg src:'/arrow.gif'
+						end
+						
 						if @loggedinas==plhash
-							img.youimg src:'/arrow.gif'
 							p{b plhash[:name]}
 						else
 							p plhash[:name]
