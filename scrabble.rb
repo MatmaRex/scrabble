@@ -12,6 +12,15 @@ class String
 	end
 end
 
+class Array
+	def sort_by_pl
+		order = 'aąbcćdeęfghijklłmnńoópqrsśtuvwxyzźż'
+		order = order.upcase_pl + order
+		
+		self.sort_by{|let| order.index(let)||-1}
+	end
+end
+
 module Scrabble
 	class WordError < StandardError
 	end

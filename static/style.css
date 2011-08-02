@@ -1,4 +1,7 @@
-#board{width: 500px } /* force full no-line-breaks display on Opera Mini */
+*{font-size:14px}
+body, input{font-family:tahoma, arial, verdana, sans-serif}
+
+#board{width:500px} /* force full no-line-breaks display on Opera Mini */
 
 #board input{border:3px double grey; text-align:center; color:black}
 #board input.enab{text-transform:uppercase}
@@ -11,7 +14,6 @@
 
 #board input.enab:focus{background:yellow; color:black}
 
-
 #board .nn{background:white}
 #board .dw{background:salmon}
 #board .tw{background:red}
@@ -19,13 +21,14 @@
 #board .tl{background:blue; color:white}
 
 
-.player, .you{width:200px; float:left; margin:10px; padding:5px; border:1px solid black}
+
+#players{}
+.player, .you{width:200px; display:inline-block; vertical-align:top; margin:0 10px; padding:5px; border:1px solid black}
 .player p, .you p{margin:0}
 .player{border-color:navy; background:#ddf}
 .you{border-color:maroon; background:#fdd}
-
-#joingame, #history{clear:both}
-
-
+.youimg{display:block; margin:0 auto; margin-top:-35px; margin-bottom:8px}
 
 #create{margin-left:1em}
+#history{position:absolute; top:10px; left:500px}
+

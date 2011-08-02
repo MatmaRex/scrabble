@@ -1,6 +1,11 @@
 * podwojny pas
 * legenda
 
+* podswietlac graczy przy ruchu
+* ostatine slowo na planszy kolorem
+* oznaczaca zwyciezce (podium?)
+
+
 OK:
 * premie 50
 * premie 2x itp tylko raz

@@ -1,5 +1,9 @@
+hist_len = -1
+
 function scrabble_callback(hsh)
 {
+	hist_len = hsh['hist_len']
+	
 	for(i in hsh)
 	{
 		el = document.getElementById(i)
@@ -19,7 +23,7 @@ function scrabble_check()
 {
 	s = document.createElement('script')
 	s.type = 'text/javascript'
-	s.src = '/micro!/'+gamename+'?'+Math.random()
+	s.src = '/micro!/'+gamename+'?hist_len='+hist_len+'&re='+Math.random()
 	document.getElementsByTagName('head')[0].appendChild(s)
 }
 

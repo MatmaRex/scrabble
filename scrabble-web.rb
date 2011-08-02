@@ -14,8 +14,26 @@ class Builder::BlankSlate
 end
 
 require 'json'
-
 require 'camping'
+
+
+def fname_for gamename
+	($production ? './tmp/' : './games/') + "#{gamename}-game"
+end
+
+def get_game gamename
+	Marshal.load File.binread fname_for gamename
+end
+
+def put_game gamename, game
+	File.open(fname_for(gamename), 'wb'){|f| f.write Marshal.dump game}
+end
+
+def game_exist? gamename
+	File.exist? fname_for gamename
+end
+
+
 Camping.goes :ScrabbleWeb
 
 module ScrabbleWeb
@@ -32,6 +50,12 @@ module ScrabbleWeb
 				File.read 'static/script.js'
 			end
 		end
+		class ArrowGif < R '/arrow.gif'
+			def get
+				@headers['Content-Type']='image/gif'
+				File.binread 'static/arrow.gif'
+			end
+		end
 		
 		class Index
 			def get
@@ -45,17 +69,16 @@ module ScrabbleWeb
 				gamename = @request['gamename']
 				playercount = @request['players'].to_i
 				playernames = [ @request['player0'], @request['player1'], @request['player2'], @request['player3'] ]
-				fname = "./#{gamename}-game"
 				
 				return 'Players?' unless (2..4).include? playercount
 				
 				if gamename =~ /\A[a-zA-Z0-9_-]+\Z/
-					if !File.exist? fname
+					if !game_exist? gamename
 						game = Scrabble::Game.new playercount, playernames
 						@cookies["game-#{gamename}-playerid"] = 0
 						@cookies["game-#{gamename}-password"] = game.players[0][:password]
 						
-						File.open(fname, 'wb'){|f| f.write Marshal.dump game}
+						put_game gamename, game
 						
 						redirect "/#{@request['gamename']}"
 					else
@@ -72,42 +95,47 @@ module ScrabbleWeb
 		class GameMicro < R '/micro!/([a-zA-Z0-9_-]+)'
 			def get gamename
 				@gamename = gamename
-				@fname = "./#{@gamename}-game"
 				
-				if !File.exist? @fname
+				if !game_exist? @gamename
 					return ''
 				else
-					@game = File.open(@fname, 'rb'){|f| Marshal.load f.read}
+					@game = get_game @gamename
 				end
 				
-				playerid, password = @cookies["game-#{@gamename}-playerid"].to_i, @cookies["game-#{@gamename}-password"]
-				@loggedinas = @game.players.select.with_index{|pl, id| id==playerid and pl[:password]==password}[0]
 				
-				
-				board = @game.board.board
-				hsh = {}
-				hsh['updateable'] = render(:_gameinfo).to_s + render(:_players).to_s + render(:_history).to_s
-				
-				board.each_index do |row|
-					board[row].each_index do |col|
-						id = "#{row}-#{col}"
-						hsh[id] = (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col]) if board[row][col]
+				@asker_hist_len = @request['hist_len'].to_i
+				if @asker_hist_len == @game.history.length
+					# nothing to update
+					return ''
+				else
+					playerid, password = @cookies["game-#{@gamename}-playerid"].to_i, @cookies["game-#{@gamename}-password"]
+					@loggedinas = @game.players.select.with_index{|pl, id| id==playerid and pl[:password]==password}[0]
+					
+					
+					board = @game.board.board
+					hsh = {}
+					hsh['updateable'] = render(:_gameinfo).to_s + render(:_players).to_s + render(:_history).to_s
+					hsh['hist_len'] = @game.history.length
+					
+					board.each_index do |row|
+						board[row].each_index do |col|
+							id = "#{row}-#{col}"
+							hsh[id] = (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col]) if board[row][col]
+						end
 					end
+					
+					@headers['content-type']='text/javascript'
+					return "scrabble_callback(#{hsh.to_json})"
 				end
-				
-				@headers['content-type']='text/javascript'
-				return "scrabble_callback(#{hsh.to_json})"
 			end
 		end
 		
 		class Game < R '/([a-zA-Z0-9_-]+)'
 			def common
-				@fname = "./#{@gamename}-game"
-				
-				if !File.exist? @fname
+				if !game_exist? @gamename
 					return 'No such game.'
 				else
-					@game = File.open(@fname, 'rb'){|f| Marshal.load f.read}
+					@game = get_game @gamename
 				end
 				
 				playerid, password = @cookies["game-#{@gamename}-playerid"].to_i, @cookies["game-#{@gamename}-password"]
@@ -138,7 +166,7 @@ module ScrabbleWeb
 					@game.history += adj.map{|pt| Scrabble::HistoryEntry.new(:adj, nil, nil, pt)}
 				
 					# save changes
-					File.open(@fname, 'wb'){|f| f.write Marshal.dump @game}
+					put_game @gamename, @game
 				end
 				
 				
@@ -208,7 +236,7 @@ module ScrabbleWeb
 						@game.history << Scrabble::HistoryEntry.new(:word, rack, words, score)
 						
 						# save changes
-						File.open(@fname, 'wb'){|f| f.write Marshal.dump @game}
+						put_game @gamename, @game
 						
 						redirect "/#{@gamename}"
 						
@@ -247,7 +275,7 @@ module ScrabbleWeb
 					@game.history << Scrabble::HistoryEntry.new(((add.empty? ? :pass : :change)), rack, add.length, nil)
 					
 					# save changes
-					File.open(@fname, 'wb'){|f| f.write Marshal.dump @game}
+					put_game @gamename, @game
 					
 					redirect "/#{@gamename}"
 					
@@ -261,12 +289,11 @@ module ScrabbleWeb
 		class JoinGame < R '/join!'
 			def post
 				@gamename, @password = @request['game'], @request['password']
-				fname = "./#{@gamename}-game"
 				
-				if !File.exist? fname
+				if !game_exist? @gamename
 					return 'No such game.'
 				else
-					@game = File.open(fname, 'rb'){|f| Marshal.load f.read}
+					@game = get_game @gamename
 				end
 				
 				as = @game.players.select{|pl| pl[:password]==@password}[0]
@@ -345,24 +372,27 @@ module ScrabbleWeb
 		end
 		
 		def _players
-			@game.players.each do |plhash|
-				div 'class'=>(@loggedinas==plhash ? 'you' : 'player') do
-					if @loggedinas==plhash
-						p{b plhash[:name]}
-					else
-						p plhash[:name]
-					end
-					
-					p{b 'Admin gry'} if plhash[:admin]
-					
-					p "Hasło do dołączenia: #{plhash[:password]}" if @loggedinas and @loggedinas[:admin]
-					
-					p "Punkty: #{plhash[:points]}"
-					
-					if @loggedinas == plhash or @game.over?
-						p "Litery: #{plhash[:letters].join ' '}"
-					else
-						p "Liter: #{plhash[:letters].length}"
+			div.players! do
+				@game.players.each do |plhash|
+					div 'class'=>(@loggedinas==plhash ? 'you' : 'player') do
+						if @loggedinas==plhash
+							img.youimg src:'/arrow.gif'
+							p{b plhash[:name]}
+						else
+							p plhash[:name]
+						end
+						
+						p{b 'Admin gry'} if plhash[:admin]
+						
+						p "Hasło do dołączenia: #{plhash[:password]}" if @loggedinas and @loggedinas[:admin]
+						
+						p "Punkty: #{plhash[:points]}"
+						
+						if @loggedinas == plhash or @game.over?
+							p "Litery: #{plhash[:letters].join ' '}"
+						else
+							p "Liter: #{plhash[:letters].length}"
+						end
 					end
 				end
 			end
@@ -437,6 +467,21 @@ module ScrabbleWeb
 				_history
 			end
 			
+			p.legend! do
+				hsh = @game.board.letters_to_points
+				order = hsh.keys.sort_by_pl
+				
+				b 'Legenda: '
+				text order.map{|let| "#{let}=#{hsh[let]}"}.join ', '
+			end
+			p.legend2! do
+				hsh = @game.board.letter_freq
+				order = hsh.keys.sort_by_pl
+				
+				b 'Liczba płytek: '
+				text order.map{|let| "#{let}x#{hsh[let]}"}.join ', '
+			end
+			
 			if !@loggedinas
 				form.joingame! method:'post', action:R(JoinGame) do
 					input.game! type:'hidden', value:@gamename
@@ -446,9 +491,9 @@ module ScrabbleWeb
 			end
 			
 			script <<EOF, type:'text/javascript'
-				document.body.addEventListener('keypress', arrow_listener, true)
-				setInterval(scrabble_check, 10000)
 				gamename = '#{@gamename}'
+				document.body.addEventListener('keypress', arrow_listener, true)
+				setInterval(scrabble_check, #{$production ? 3000 : 15000})
 EOF
 		end
 	end
