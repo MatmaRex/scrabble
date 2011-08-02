@@ -1,5 +1,3 @@
-hist_len = -1
-
 function scrabble_callback(hsh)
 {
 	hist_len = hsh['hist_len']
@@ -19,6 +17,11 @@ function scrabble_callback(hsh)
 	}
 	
 	document.getElementById('updateable').innerHTML = hsh['updateable']
+	if(hsh['over'])
+	{
+		con = document.getElementById('controls')
+		con.parentNode.removeChild(con)
+	}
 }
 
 function scrabble_check()
@@ -48,7 +51,7 @@ function arrow_listener(e, _forced_target)
 		
 		if(nextel)
 		{
-			if(nextel.readonly)
+			if(nextel.className.indexOf('disab') != -1)
 			{
 				dummy = {preventDefault: function(){}, keyCode: e.keyCode}
 				arrow_listener(dummy, nextel)

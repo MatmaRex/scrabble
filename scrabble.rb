@@ -356,6 +356,7 @@ module Scrabble
 	class Game
 		attr_accessor :board, :players, :whoseturn
 		attr_accessor :history
+		attr_accessor :consec_passes
 		attr_accessor :finished
 		
 		def initialize playercount, playernames, mode = :scrabble
@@ -383,9 +384,20 @@ module Scrabble
 		end
 		
 		def over?
-			players.any?{|pl| pl[:letters].empty?}
+			@players.any?{|pl| pl[:letters].empty?} or (@consec_passes||0) >= @players.length*2
 		end
 		
+		def max_points
+			@players.map{|pl| pl[:points]}.max
+		end
+		
+		def is_winner? player
+			if over? and finished
+				player[:points] == max_points
+			else
+				false
+			end
+		end
 	end
 end
 

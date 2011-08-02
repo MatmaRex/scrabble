@@ -65,7 +65,7 @@ module ScrabbleWeb
 		
 		class Index
 			def get
-				@gamelist = Dir.entries('games').map{|a| a.sub(/-game\Z/, '')}
+				@gamelist = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
 				render :home
 			end
 		end
@@ -108,6 +108,25 @@ module ScrabbleWeb
 					@game = get_game @gamename
 				end
 				
+				if @game.over? and !@game.finished
+					@game.finished = true
+					
+					finished = @game.players.select{|pl| pl[:letters].empty? }[0]
+					adj = @game.players.map{|pl| pl[:letters].map{|lt| @game.board.letters_to_points[lt]}.inject(0, &:+) * -1  }
+					
+					adj[ finished[:id] ] = (adj.inject &:+) * -1 if finished
+					
+					@game.players.each_with_index do |pl, i|
+						pl[:points] += adj[i]
+					end
+					
+					
+					adj.rotate! @game.whoseturn
+					@game.history += adj.map{|pt| Scrabble::HistoryEntry.new(:adj, nil, nil, pt)}
+				
+					# save changes
+					put_game @gamename, @game
+				end
 				
 				@asker_hist_len = @request['hist_len'].to_i
 				if @asker_hist_len == @game.history.length
@@ -122,6 +141,7 @@ module ScrabbleWeb
 					hsh = {}
 					hsh['updateable'] = render(:_gameinfo).to_s + render(:_players).to_s + render(:_history).to_s
 					hsh['hist_len'] = @game.history.length
+					hsh['over'] = @game.over?
 					
 					board.each_index do |row|
 						board[row].each_index do |col|
@@ -158,10 +178,10 @@ module ScrabbleWeb
 				if @game.over? and !@game.finished
 					@game.finished = true
 					
-					tgt = @game.players.select{|pl| pl[:letters].empty? }[0]
-					
+					finished = @game.players.select{|pl| pl[:letters].empty? }[0]
 					adj = @game.players.map{|pl| pl[:letters].map{|lt| @game.board.letters_to_points[lt]}.inject(0, &:+) * -1  }
-					adj[tgt[:id] ] = (adj.inject &:+) * -1
+					
+					adj[ finished[:id] ] = (adj.inject &:+) * -1 if finished
 					
 					@game.players.each_with_index do |pl, i|
 						pl[:points] += adj[i]
@@ -240,6 +260,7 @@ module ScrabbleWeb
 						
 						# save the move data in history
 						@game.history << Scrabble::HistoryEntry.new(:word, rack, words, score)
+						@game.consec_passes = 0
 						
 						# save changes
 						put_game @gamename, @game
@@ -279,6 +300,7 @@ module ScrabbleWeb
 					
 					# save the move data in history
 					@game.history << Scrabble::HistoryEntry.new(((add.empty? ? :pass : :change)), rack, add.length, nil)
+					@game.consec_passes += 1 # change counts, too.
 					
 					# save changes
 					put_game @gamename, @game
@@ -380,8 +402,14 @@ module ScrabbleWeb
 		def _players
 			div.players! do
 				@game.players.each do |plhash|
-					div 'class'=>(@loggedinas==plhash ? 'you' : 'player') do
-						if plhash[:id] == @game.whoseturn
+					theclass = [
+						'player', 
+						(@loggedinas==plhash ? 'you' : ''),
+						(@game.is_winner?(plhash) ? 'winner' : '')
+					].join ' '
+					
+					div 'class' => theclass do
+						if plhash[:id] == @game.whoseturn and !@game.over?
 							img.currentimg src:'/arrow.gif'
 						end
 						
@@ -452,21 +480,27 @@ module ScrabbleWeb
 				_board
 				br
 				
-				if @loggedinas and @loggedinas[:letters].include? '?'
-					text 'Jeśli używasz blanka, wpisz tu, jaką literą chcesz go zastąpić: '
-					input.blank_replac!
-					if @loggedinas[:letters].count('?') > 1
-						text ' (jeśli używasz więcej niż jednego, wpisz dwie litery; najpierw podaj literę dla tego blanka, który jest bliżej lewej strony lub góry planszy)'
+				if @loggedinas and !@game.over?
+					div.controls! do
+						if @loggedinas[:letters].include? '?'
+							br
+							text 'Jeśli używasz blanka, wpisz tu, jaką literą chcesz go zastąpić: '
+							input.blank_replac!
+							if @loggedinas[:letters].count('?') > 1
+								text ' (jeśli używasz więcej niż jednego, wpisz dwie litery; najpierw podaj literę dla tego blanka, który jest bliżej lewej strony lub góry planszy)'
+							end
+						end
+						
+						br
+						input name:'mode', type:'submit', value:'OK'
+						text ' '
+						input type:'reset', value:'Od nowa'
+						
+						br
+						input.change!
+						text ' '
+						input name:'mode', type:'submit', value:'Pas/Wymiana' 
 					end
-				end
-				br
-				
-				if @loggedinas
-					input name:'mode', type:'submit', value:'OK'
-					input type:'reset', value:'Od nowa'
-					br
-					input.change!
-					input name:'mode', type:'submit', value:'Pas/Wymiana' 
 				end
 			end
 			
@@ -501,6 +535,7 @@ module ScrabbleWeb
 			
 			script <<EOF, type:'text/javascript'
 				gamename = '#{@gamename}'
+				hist_len = #{@game.history.length}
 				document.body.addEventListener('keypress', arrow_listener, true)
 				setInterval(scrabble_check, #{$production ? 3000 : 15000})
 EOF

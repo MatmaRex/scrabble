@@ -1,6 +1,3 @@
-* podwojny pas
-
-* oznaczaca zwyciezce (podium?)
 
 
 OK:
@@ -14,3 +11,5 @@ OK:
 * legenda
 * podswietlac graczy przy ruchu
 * ostatine slowo na planszy kolorem
+* podwojny pas
+* oznaczac zwyciezce
