@@ -115,20 +115,55 @@ module ScrabbleWeb
 					
 					board = @game.board.board
 					hsh = {}
-					hsh['updateable'] = render(:_gameinfo).to_s + render(:_players).to_s + render(:_history).to_s
+					hsh['updateable'] = render(:_updateable).to_s
 					hsh['hist_len'] = @game.history.length
 					hsh['over'] = @game.over?
 					
 					board.each_index do |row|
 						board[row].each_index do |col|
-							id = "#{row}-#{col}"
-							hsh[id] = (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col]) if board[row][col]
+							if board[row][col]
+								id = "#{row}-#{col}"
+								hsh[id] = (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col]) 
+								# hsh['force-'+id] = true if @game.board.blank_replac[ [row, col] ] # replaced blanks
+							end
 						end
 					end
 					
 					@headers['content-type']='text/javascript'
 					return "scrabble_callback(#{hsh.to_json})"
 				end
+			end
+		end
+		
+		class GetBlank < R '/blank!/([a-zA-Z0-9_-]+)'
+			def post gamename
+				@game = get_game gamename
+				
+				playerid, password = @cookies["game-#{gamename}-playerid"].to_i, @cookies["game-#{gamename}-password"]
+				@loggedinas = @game.players.select.with_index{|pl, id| id==playerid and pl[:password]==password}[0]
+				
+				
+				return 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
+				return 'Game already over.' if @game.over?
+				
+				
+				row, col = @request['loc'].match(/\A([a-z]+)([0-9]+)\z/i){ [([*'a'..'z'].index $1.downcase), ($2.to_i - 1)] }
+				return 'Wrong input format?' if !row or !col
+				
+				return 'Not a blank here.' if @game.board.board[row][col] != '?'
+				replace_with = @game.board.blank_replac[ [row, col] ].upcase_pl
+				
+				at = @loggedinas[:letters].index replace_with
+				return "You don't have this letter." unless at
+				
+				# all is fine - do the job.
+				@game.board.board[row][col] = replace_with
+				@loggedinas[:letters][at] = '?'
+				# don't change @game.board.blank_replac - it's used to update everybody's board
+				
+				put_game gamename, @game
+				
+				redirect "/#{gamename}"
 			end
 		end
 		
@@ -246,7 +281,7 @@ module ScrabbleWeb
 						redirect "/#{@gamename}"
 						
 					rescue Scrabble::WordError => e
-						return 'Incorrect move.'.encode('utf-8') + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
+						return 'Incorrect move.' + '<br>' + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
 					end
 				
 				elsif @request['mode'] == 'Pas/Wymiana'
@@ -278,6 +313,7 @@ module ScrabbleWeb
 					
 					# save the move data in history
 					@game.history << Scrabble::HistoryEntry.new(((add.empty? ? :pass : :change)), rack, add.length, nil)
+					@game.consec_passes ||= 0
 					@game.consec_passes += 1 # change counts, too.
 					
 					# save changes
@@ -325,6 +361,7 @@ module ScrabbleWeb
 				head do
 					title(@pagetitle ? "#{@pagetitle} - Scrabble" : "Scrabble")
 					link rel:'stylesheet', type:'text/css', href:'/static/style.css'
+					script '', type:'text/javascript', src:'/static/mintAjax.js'
 					script '', type:'text/javascript', src:'/static/script.js'
 				end
 				body do
@@ -355,7 +392,14 @@ module ScrabbleWeb
 			board = @game.board.board
 			
 			div.board! do
+				span.boardloc ''
+				(1..15).each do |i|
+					span.boardloc i.to_s
+				end
+				
 				board.each_index do |row|
+					span.boardloc [*'A'..'Z'][row]
+					
 					board[row].each_index do |col|
 						id = "#{row}-#{col}"
 						
@@ -393,11 +437,7 @@ module ScrabbleWeb
 							img.currentimg src:'/static/arrow.gif'
 						end
 						
-						if @loggedinas==plhash
-							p{b plhash[:name]}
-						else
-							p plhash[:name]
-						end
+						p.playername plhash[:name]
 						
 						p{b 'Admin gry'} if plhash[:admin]
 						
@@ -455,10 +495,42 @@ module ScrabbleWeb
 			text ''
 		end
 		
+		def _getblank
+			if @loggedinas and !@game.over?
+				if @game.board.board.flatten.include? '?'
+					form.getblank! method:'post', action:R(GetBlank, @gamename) do
+						text 'Podmień blanka - podaj jego pozycję: (np. B12) '
+						input.loc!
+						input type:'submit'
+					end
+				end
+			end
+		end
+		
+		def _updateable
+			_getblank
+			_gameinfo
+			_players
+			_history
+		end
+		
 		def game
 			form method:'post', action:R(Game, @gamename) do
 				_board
 				br
+				
+				if @loggedinas
+					div.rack! do
+						text 'Stojak: '
+						div.rackdropzone! do
+							@loggedinas[:letters].each_with_index do |let, i|
+								input.rackletter id:"letter#{i}", readonly:'readonly', value:let
+							end
+						end
+					end
+					
+					script "dropzone_setup(#{@loggedinas[:letters].length})", type:'text/javascript'
+				end
 				
 				if @loggedinas and !@game.over?
 					div.controls! do
@@ -484,10 +556,10 @@ module ScrabbleWeb
 				end
 			end
 			
+			
+			
 			div.updateable! do
-				_gameinfo
-				_players
-				_history
+				_updateable
 			end
 			
 			p.legend! do
@@ -505,7 +577,7 @@ module ScrabbleWeb
 				text order.map{|let| "#{let}x#{hsh[let]}"}.join ', '
 			end
 			
-			if !@loggedinas
+			if !@loggedinas and !@game.over?
 				form.joingame! method:'post', action:R(JoinGame) do
 					input.game! type:'hidden', value:@gamename
 					text 'Dołącz go gry - hasło: '; input.password!

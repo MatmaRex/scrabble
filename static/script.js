@@ -6,13 +6,16 @@ function scrabble_callback(hsh)
 	
 	for(i in hsh)
 	{
-		el = document.getElementById(i)
-		
-		if(i.match(/^\d+-\d+$/) && !el.readonly && el.value!=hsh[i])
+		if(i.match(/^\d+-\d+$/))
 		{
-			el.className = el.className.replace('enab', 'disab') + ' hilit'
-			el.readonly = true
-			el.value = hsh[i]
+			el = document.getElementById(i)
+			
+			if( el.className.indexOf('enab')!=-1 || el.value!=hsh[i] )
+			{
+				el.className = el.className.replace('enab', 'disab') + ' hilit'
+				el.readonly = true
+				el.value = hsh[i]
+			}
 		}
 	}
 	
@@ -20,6 +23,9 @@ function scrabble_callback(hsh)
 	if(hsh['over'])
 	{
 		con = document.getElementById('controls')
+		con.parentNode.removeChild(con)
+		
+		con = document.getElementById('getblank')
 		con.parentNode.removeChild(con)
 	}
 }
@@ -63,4 +69,15 @@ function arrow_listener(e, _forced_target)
 			}
 		}
 	}
+}
+
+function dropzone_setup(n)
+{
+	for(var i=0; i<n; i++) mint.gui.RegisterDragObject("letter"+i)
+	
+	var zone = mint.gui.RegisterDropZone("rackdropzone")
+	zone.autoInline = false
+	zone.returnItems = true
+	
+	for(var i=0; i<n; i++) zone.InsertItem( document.getElementById("letter"+i) )
 }

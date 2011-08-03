@@ -175,12 +175,6 @@ module Scrabble
 			end
 			
 			
-			# 0.5. only letters from rack are used
-			lets = letters.map{|a| a[2]}
-			unless lets.uniq.all?{|let| rack.count(let) >= lets.count(let)}
-				raise WordError, '0.5. you can only use letters from your rack (use uppercase)'
-			end
-			
 			
 			# 1. check if all letters are on single line
 			cols = letters.map{|col, row, letter| col}
@@ -277,13 +271,22 @@ module Scrabble
 				raise WordError, "4. one-letter words not allowed / you didn't really create a word"
 			end
 			
+			
+			# 4.5. only letters from rack are used
+			# as late as here, since wrong placement errors are much more common
+			lets = letters.map{|a| a[2]}
+			unless lets.uniq.all?{|let| rack.count(let) >= lets.count(let)}
+				raise WordError, '4.5. you can only use letters from your rack'
+			end
+			
+			
 			# 5. check the words in dictionary
 			base = 'http://www.sjp.pl/'
 			dop = %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
 			
 			# only now we have to substitute the blanks
 			# sort - first the topmost, leftmost, horizontal words
-			words = words.sort_by{|w| [w.row, w.col, (w.direction==:verti ? 2 : 1)]}
+			words = words.sort_by{|w| [w.row, w.col, (w.direction==:verti ? 2 : 1)] }
 			# now, go thru the word list, marking (on the board) where the blanks were used
 			words.each do |w|
 				w.letters.each_with_index do |let, ind|
@@ -311,11 +314,15 @@ module Scrabble
 				
 			end
 			
+			# actually checking words here
 			words.each do |w|
 				unless (RestClient.get base+(CGI.escape w.letters.join(''))) =~ dop
 					raise WordError, '5. incorrect word: '+ w.letters.join('')
 				end
 			end
+			
+			# sort once again, this time by word length - so the most important words go first
+			words = words.sort_by{|w| w.length}.reverse
 			
 			
 			# restore the board

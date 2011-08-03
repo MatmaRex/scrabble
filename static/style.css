@@ -1,20 +1,24 @@
 *{font-size:14px}
 body, input{font-family:tahoma, arial, verdana, sans-serif}
 
-#board{width:500px} /* force full no-line-breaks display on Opera Mini */
+#board{width:540px} /* force full no-line-breaks display on Opera Mini */
 
-#board input{border:3px double grey; text-align:center; color:black}
+#board input, .rackletter{border:3px double grey; text-align:center; color:black}
 #board input.enab{text-transform:uppercase}
+#board input.disab{text-transform:none}
 
-#board input{display:block; float:left; margin:1px; width:30px; height:30px}
+#board input, .rackletter, .boardloc{margin:1px; width:30px; height:30px}
+#board input, .boardloc{display:block; float:left}
+.boardloc{text-align:center; font-size:15px; line-height:30px}
+
 #board br{clear:both}
 
 #board input.enab{font-size:20px}
-#board input.disab{font-size:15px}
+#board input.disab, .rackletter{font-size:15px}
 
 #board input.enab:focus{background:yellow; color:black}
 
-#board .nn{background:white}
+#board .nn, .rackletter{background:white}
 #board .dw{background:salmon}
 #board .tw{background:red}
 #board .dl{background:lightblue}
@@ -23,11 +27,22 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board .hilit{background-image:url('/static/hilit.gif')}
 
 
+#rackdropzone{height:30px}
+.rackletter{display:block; float:left; cursor:e-resize}
+
+#rack, #controls, #getblank{margin:0; margin-left:1em}
+
+#updateable{clear:both}
+
+
+
 
 #players{}
 .player{width:200px; display:inline-block; vertical-align:top; margin:0 10px; padding:5px; border:1px solid black}
 .player p{margin:0}
 .currentimg{display:block; margin:0 auto; margin-top:-35px; margin-bottom:8px}
+
+.you .playername{font-weight:bold}
 
 .player{border-color:navy; background:#ddf}
 .you{border-color:maroon; background:#fdd}
@@ -35,5 +50,5 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 
 
 #create{margin-left:1em}
-#history{position:absolute; top:10px; left:500px}
+#history{position:absolute; top:10px; left:540px}
 
