@@ -318,6 +318,8 @@ module ScrabbleWeb
 	end
 	
 	module Views
+		# Mab.set(:indent, 2) if !$production
+		
 		def layout
 			html do
 				head do
@@ -511,12 +513,14 @@ module ScrabbleWeb
 				end
 			end
 			
-			script <<EOF, type:'text/javascript'
-				gamename = '#{@gamename}'
-				hist_len = #{@game.history.length}
-				document.body.addEventListener('keypress', arrow_listener, true)
-				setInterval(scrabble_check, #{$production ? 3000 : 15000})
-EOF
+			js = [
+				"gamename = '#{@gamename}'",
+				"hist_len = #{@game.history.length}",
+				"document.body.addEventListener('keypress', arrow_listener, true)",
+				!@game.over? ? "setInterval(scrabble_check, #{$production ? 3000 : 15000})" : ''
+			]
+			
+			script js.join('; '), type:'text/javascript'
 		end
 	end
 end
