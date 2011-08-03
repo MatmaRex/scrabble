@@ -85,23 +85,8 @@ module ScrabbleWeb
 				end
 				
 				if @game.over? and !@game.finished
-					@game.finished = true
-					
-					finished = @game.players.select{|pl| pl[:letters].empty? }[0]
-					adj = @game.players.map{|pl| pl[:letters].map{|lt| @game.board.letters_to_points[lt]}.inject(0, &:+) * -1  }
-					
-					adj[ finished[:id] ] = (adj.inject &:+) * -1 if finished
-					
-					@game.players.each_with_index do |pl, i|
-						pl[:points] += adj[i]
-					end
-					
-					
-					adj.rotate! @game.whoseturn
-					@game.history += adj.map{|pt| Scrabble::HistoryEntry.new(:adj, nil, nil, pt)}
-				
-					# save changes
-					put_game @gamename, @game
+					res = @game.do_endgame_calculations
+					put_game @gamename, @game if res
 				end
 				
 				@asker_hist_len = @request['hist_len'].to_i
@@ -188,24 +173,10 @@ module ScrabbleWeb
 				err = common()
 				return err if err
 				
-				if @game.over? and !@game.finished
-					@game.finished = true
-					
-					finished = @game.players.select{|pl| pl[:letters].empty? }[0]
-					adj = @game.players.map{|pl| pl[:letters].map{|lt| @game.board.letters_to_points[lt]}.inject(0, &:+) * -1  }
-					
-					adj[ finished[:id] ] = (adj.inject &:+) * -1 if finished
-					
-					@game.players.each_with_index do |pl, i|
-						pl[:points] += adj[i]
-					end
-					
-					
-					adj.rotate! @game.whoseturn
-					@game.history += adj.map{|pt| Scrabble::HistoryEntry.new(:adj, nil, nil, pt)}
 				
-					# save changes
-					put_game @gamename, @game
+				if @game.over? and !@game.finished
+					res = @game.do_endgame_calculations
+					put_game @gamename, @game if res
 				end
 				
 				
@@ -241,88 +212,21 @@ module ScrabbleWeb
 					return 'You did nothing?' if letts.empty?
 					
 					begin
-						# this will raise Scrabble::WordError if anything's not right
-						words = @game.board.check_word letts, @loggedinas[:letters], blank_replac, true
-						# if we get here, we can assume all words are correct
-						
-						
-						# TODO: move all this to Game class
-						
-						# sum up points
-						score = words.map(&:score).inject(&:+) + (letts.length==7 ? 50 : 0) # "bingo"
-						@loggedinas[:points] += score
-						
-						
-						
-						# which player goes next?
-						@game.whoseturn = (@game.whoseturn+1) % @game.players.length
-						
-						# mark which multis were used
-						letts.each do |col, row, _|
-							@game.board.multis_used[row][col] = true
-						end
-						
-						# remove used letters from rack, get new ones
-						rack = @loggedinas[:letters].clone
-						
-						letts.each do |_, _, let|
-							@loggedinas[:letters].delete_at @loggedinas[:letters].index let
-						end
-						@loggedinas[:letters] += @game.board.letter_queue.shift(7 - @loggedinas[:letters].length)
-						
-						
-						# save the move data in history
-						@game.history << Scrabble::HistoryEntry.new(:word, rack, words, score)
-						@game.consec_passes = 0
-						
-						# save changes
-						put_game @gamename, @game
-						
-						redirect "/#{@gamename}"
-						
+						@game.do_move letts, blank_replac, @loggedinas[:id]
 					rescue Scrabble::WordError => e
 						return 'Incorrect move.' + '<br>' + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
 					end
 				
 				elsif @request['mode'] == 'Pas/Wymiana'
-					ch = @request['change'].upcase_pl.gsub(/\s/, '').split('')
-					add = []
+					ch = (@request['change']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
 					
-					rack = @loggedinas[:letters].clone
-					
-					# ch may contain other stuff, apart from letters. make sure we have letters,
-					# then remove them from rack and add to queue
-					ch.each do |let|
-						ind = @loggedinas[:letters].index let
-						if ind
-							return "can't change if less than 7 letters left" if @game.board.letter_queue.length<7
-							
-							@loggedinas[:letters].delete_at ind
-							add << let
-						end
-					end
-					# get new letters from queue
-					@loggedinas[:letters] += @game.board.letter_queue.shift(7 - @loggedinas[:letters].length)
-					
-					# add changed letters to queue and reshuffle
-					@game.board.letter_queue = (@game.board.letter_queue + add).shuffle
-					
-					# which player goes next?
-					@game.whoseturn = (@game.whoseturn+1) % @game.players.length
-					
-					
-					# save the move data in history
-					@game.history << Scrabble::HistoryEntry.new(((add.empty? ? :pass : :change)), rack, add.length, nil)
-					@game.consec_passes ||= 0
-					@game.consec_passes += 1 # change counts, too.
-					
-					# save changes
-					put_game @gamename, @game
-					
-					redirect "/#{@gamename}"
-					
+					@game.do_pass_or_change ch, @loggedinas[:id]
 				end
-			
+				
+				put_game @gamename, @game
+				
+				redirect "/#{@gamename}"
+				
 			rescue
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
 			end
