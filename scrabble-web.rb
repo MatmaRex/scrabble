@@ -52,7 +52,7 @@ module ScrabbleWeb
 				playercount = @request['players'].to_i
 				playernames = [ @request['player0'], @request['player1'], @request['player2'], @request['player3'] ]
 				
-				return 'Players?' unless (2..4).include? playercount
+				return 'Players?' unless (1..4).include? playercount
 				
 				if gamename =~ /\A[a-zA-Z0-9_-]+\Z/
 					if !game_exist? gamename
@@ -283,7 +283,7 @@ module ScrabbleWeb
 			p 'Utwórz nową:'
 			form.create! method:'post', action:'/new!' do
 				text 'Nazwa gry: '; input.gamename!; br
-				text 'Liczba graczy: '; input.players!; br
+				text 'Liczba graczy (1-4): '; input.players!; br
 				text 'Nicki kolejnych graczy (opcj.): '
 				(0..3).each do |i|
 					input name:"player#{i}"; text ' '
