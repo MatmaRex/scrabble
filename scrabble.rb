@@ -452,7 +452,7 @@ module Scrabble
 			cur_player[:letters] += @board.letter_queue.shift(7 - cur_player[:letters].length)
 			
 			# add changed letters to queue and reshuffle
-			@board.letter_queue = (@game.board.letter_queue + add).shuffle
+			@board.letter_queue = (@board.letter_queue + add).shuffle
 			
 			# which player goes next?
 			@whoseturn = (@whoseturn+1) % @players.length

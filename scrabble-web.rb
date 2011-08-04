@@ -39,6 +39,8 @@ Camping.goes :ScrabbleWeb
 module ScrabbleWeb
 	use Rack::Static, urls:['/static']
 	module Controllers
+		class Favicon < R '/favicon.ico'; def get; @headers['content-type']='image/vnd.microsoft.icon'; File.binread './favicon.ico'; end; end
+		
 		class Index
 			def get
 				@gamelist = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
