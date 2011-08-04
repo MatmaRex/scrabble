@@ -22,7 +22,9 @@ def fname_for gamename
 end
 
 def get_game gamename
-	Marshal.load File.binread fname_for gamename
+	game = Marshal.load File.binread fname_for gamename
+	game.players.map!{|pl| (pl.is_a?(Scrabble::Player) ? pl : Scrabble::Player.new(pl) )}
+	game
 end
 
 def put_game gamename, game
@@ -37,6 +39,14 @@ end
 Camping.goes :ScrabbleWeb
 
 module ScrabbleWeb
+	module Helpers
+		def get_logged_in_player gamename, game
+			playerid, password = @cookies["game-#{gamename}-playerid"].to_i, @cookies["game-#{gamename}-password"]
+			loggedinas = game.players.select{|pl| pl.id==playerid and pl.password==password}[0]
+			loggedinas
+		end
+	end
+	
 	use Rack::Static, urls:['/static']
 	module Controllers
 		class Favicon < R '/favicon.ico'; def get; @headers['content-type']='image/vnd.microsoft.icon'; File.binread './favicon.ico'; end; end
@@ -60,7 +70,7 @@ module ScrabbleWeb
 					if !game_exist? gamename
 						game = Scrabble::Game.new playercount, playernames
 						@cookies["game-#{gamename}-playerid"] = 0
-						@cookies["game-#{gamename}-password"] = game.players[0][:password]
+						@cookies["game-#{gamename}-password"] = game.players[0].password
 						
 						put_game gamename, game
 						
@@ -96,9 +106,7 @@ module ScrabbleWeb
 					# nothing to update
 					return ''
 				else
-					playerid, password = @cookies["game-#{@gamename}-playerid"].to_i, @cookies["game-#{@gamename}-password"]
-					@loggedinas = @game.players.select.with_index{|pl, id| id==playerid and pl[:password]==password}[0]
-					
+					@loggedinas = get_logged_in_player @gamename, @game
 					
 					board = @game.board.board
 					hsh = {}
@@ -125,9 +133,7 @@ module ScrabbleWeb
 		class GetBlank < R '/blank!/([a-zA-Z0-9_-]+)'
 			def post gamename
 				@game = get_game gamename
-				
-				playerid, password = @cookies["game-#{gamename}-playerid"].to_i, @cookies["game-#{gamename}-password"]
-				@loggedinas = @game.players.select.with_index{|pl, id| id==playerid and pl[:password]==password}[0]
+				@loggedinas = get_logged_in_player gamename, @game
 				
 				
 				return 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
@@ -140,12 +146,12 @@ module ScrabbleWeb
 				return 'Not a blank here.' if @game.board.board[row][col] != '?'
 				replace_with = @game.board.blank_replac[ [row, col] ].upcase_pl
 				
-				at = @loggedinas[:letters].index replace_with
+				at = @loggedinas.letters.index replace_with
 				return "You don't have this letter." unless at
 				
 				# all is fine - do the job.
 				@game.board.board[row][col] = replace_with
-				@loggedinas[:letters][at] = '?'
+				@loggedinas.letters[at] = '?'
 				# don't change @game.board.blank_replac - it's used to update everybody's board
 				
 				put_game gamename, @game
@@ -164,8 +170,7 @@ module ScrabbleWeb
 				
 				@pagetitle = @gamename
 				
-				playerid, password = @cookies["game-#{@gamename}-playerid"].to_i, @cookies["game-#{@gamename}-password"]
-				@loggedinas = @game.players.select.with_index{|pl, id| id==playerid and pl[:password]==password}[0]
+				@loggedinas = get_logged_in_player @gamename, @game
 				
 				return nil
 			end
@@ -214,7 +219,7 @@ module ScrabbleWeb
 					return 'You did nothing?' if letts.empty?
 					
 					begin
-						@game.do_move letts, blank_replac, @loggedinas[:id]
+						@game.do_move letts, blank_replac, @loggedinas.id
 					rescue Scrabble::WordError => e
 						return 'Incorrect move.' + '<br>' + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
 					end
@@ -222,7 +227,7 @@ module ScrabbleWeb
 				elsif @request['mode'] == 'Pas/Wymiana'
 					ch = (@request['change']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
 					
-					@game.do_pass_or_change ch, @loggedinas[:id]
+					@game.do_pass_or_change ch, @loggedinas.id
 				end
 				
 				put_game @gamename, @game
@@ -244,7 +249,7 @@ module ScrabbleWeb
 					@game = get_game @gamename
 				end
 				
-				as = @game.players.select{|pl| pl[:password]==@password}[0]
+				as = @game.players.select{|pl| pl.password==@password}[0]
 				
 				if as
 					@cookies["game-#{@gamename}-playerid"] = @game.players.index as
@@ -331,30 +336,30 @@ module ScrabbleWeb
 		
 		def _players
 			div.players! do
-				@game.players.each do |plhash|
+				@game.players.each do |pl|
 					theclass = [
 						'player',
-						(@loggedinas==plhash ? 'you' : ''),
-						(@game.is_winner?(plhash) ? 'winner' : '')
+						(@loggedinas==pl ? 'you' : ''),
+						(@game.is_winner?(pl) ? 'winner' : '')
 					].join ' '
 					
 					div 'class' => theclass do
-						if plhash[:id] == @game.whoseturn and !@game.over?
+						if pl.id == @game.whoseturn and !@game.over?
 							img.currentimg src:'/static/arrow.gif'
 						end
 						
-						p.playername plhash[:name]
+						p.playername pl.name
 						
-						p{b 'Admin gry'} if plhash[:admin]
+						p{b 'Admin gry'} if pl.admin
 						
-						p "Hasło do dołączenia: #{plhash[:password]}" if @loggedinas and @loggedinas[:admin]
+						p "Hasło do dołączenia: #{pl.password}" if @loggedinas and @loggedinas.admin
 						
-						p "Punkty: #{plhash[:points]}"
+						p "Punkty: #{pl.points}"
 						
-						if @loggedinas == plhash or @game.over?
-							p "Litery: #{plhash[:letters].join ' '}"
+						if @loggedinas == pl or @game.over?
+							p "Litery: #{pl.letters.join ' '}"
 						else
-							p "Liter: #{plhash[:letters].length}"
+							p "Liter: #{pl.letters.length}"
 						end
 					end
 				end
@@ -365,7 +370,7 @@ module ScrabbleWeb
 			if @game.over?
 				p.whoseturn! "Gra zakończona!"
 			else
-				p.whoseturn! "Teraz: #{@game.players[@game.whoseturn][:name]}"
+				p.whoseturn! "Teraz: #{@game.players[@game.whoseturn].name}"
 			end
 			
 			p.letterleft! "Zostało: #{@game.board.letter_queue.length} liter"
@@ -375,7 +380,7 @@ module ScrabbleWeb
 			table.history! do
 				tr do
 					@game.players.each do |pl|
-						th pl[:name]
+						th pl.name
 					end
 				end
 				
@@ -429,22 +434,22 @@ module ScrabbleWeb
 					div.rack! do
 						text 'Stojak: '
 						div.rackdropzone! do
-							@loggedinas[:letters].each_with_index do |let, i|
+							@loggedinas.letters.each_with_index do |let, i|
 								input.rackletter id:"letter#{i}", readonly:'readonly', value:let
 							end
 						end
 					end
 					
-					script "dropzone_setup(#{@loggedinas[:letters].length})", type:'text/javascript'
+					script "dropzone_setup(#{@loggedinas.letters.length})", type:'text/javascript'
 				end
 				
 				if @loggedinas and !@game.over?
 					div.controls! do
-						if @loggedinas[:letters].include? '?'
+						if @loggedinas.letters.include? '?'
 							br
 							text 'Jeśli używasz blanka, wpisz tu, jaką literą chcesz go zastąpić: '
 							input.blank_replac!
-							if @loggedinas[:letters].count('?') > 1
+							if @loggedinas.letters.count('?') > 1
 								text ' (jeśli używasz więcej niż jednego, wpisz dwie litery; najpierw podaj literę dla tego blanka, który jest bliżej lewej strony lub góry planszy)'
 							end
 						end
