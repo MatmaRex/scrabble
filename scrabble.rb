@@ -381,7 +381,7 @@ module Scrabble
 		attr_accessor :consec_passes
 		attr_accessor :finished
 		
-		def initialize playercount, playernames, mode = :scrabble
+		def initialize playercount, playernames, whoisadmin, mode = :scrabble
 			@history = []
 			
 			@players = []
@@ -395,11 +395,10 @@ module Scrabble
 					points: 0,
 					letters: [],
 					password: Rufus::Mnemo.from_integer(rand(1e6)),
-					admin: false
+					admin: (whoisadmin == i)
 				)
 			end
 			
-			@players[0].admin = true
 			@players.each do |plhash|
 				plhash.letters = @board.letter_queue.shift(7)
 			end

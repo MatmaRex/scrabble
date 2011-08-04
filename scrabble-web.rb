@@ -63,14 +63,16 @@ module ScrabbleWeb
 				gamename = @request['gamename']
 				playercount = @request['players'].to_i
 				playernames = [ @request['player0'], @request['player1'], @request['player2'], @request['player3'] ]
+				whoisadmin = (@request['whoisadmin'].to_i - 1)
 				
 				return 'Players?' unless (1..4).include? playercount
+				return 'Admin?' unless (0...playercount).include? whoisadmin
 				
 				if gamename =~ /\A[a-zA-Z0-9_-]+\Z/
 					if !game_exist? gamename
-						game = Scrabble::Game.new playercount, playernames
-						@cookies["game-#{gamename}-playerid"] = 0
-						@cookies["game-#{gamename}-password"] = game.players[0].password
+						game = Scrabble::Game.new playercount, playernames, whoisadmin
+						@cookies["game-#{gamename}-playerid"] = whoisadmin
+						@cookies["game-#{gamename}-password"] = game.players[whoisadmin].password
 						
 						put_game gamename, game
 						
@@ -294,7 +296,8 @@ module ScrabbleWeb
 				text 'Nicki kolejnych graczy (opcj.): '
 				(0..3).each do |i|
 					input name:"player#{i}"; text ' '
-				end
+				end; br
+				text 'Chcę być graczem numer: (1-4) '; input.whoisadmin!; br
 				input type:'submit'
 			end
 		end
