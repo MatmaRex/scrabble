@@ -81,7 +81,7 @@ module ScrabbleWeb
 						return "Game '#{gamename}' already exists."
 					end
 				else
-					return 'Only ASCII letters, numbers, underscore and hyphen  (a-z, A-Z, 0-9, _, -) allowed in game names.' 
+					return 'Only ASCII letters, numbers, underscore and hyphen (a-z, A-Z, 0-9, _, -) allowed in game names.'
 				end
 			rescue
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
@@ -120,8 +120,7 @@ module ScrabbleWeb
 						board[row].each_index do |col|
 							if board[row][col]
 								id = "#{row}-#{col}"
-								hsh[id] = (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col]) 
-								# hsh['force-'+id] = true if @game.board.blank_replac[ [row, col] ] # replaced blanks
+								hsh[id] = (board[row][col]=='?' ? @game.board.blank_replac[ [row, col] ].downcase_pl : board[row][col])
 							end
 						end
 					end
