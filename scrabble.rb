@@ -52,6 +52,7 @@ module Scrabble
 				multi = case type
 				when :dl; 2
 				when :tl; 3
+				when :ql; 4
 				when :t1; (@board.letters_to_points[letter.upcase_pl]==1 ? 3 : 1)
 				when :t2; (@board.letters_to_points[letter.upcase_pl]==2 ? 3 : 1)
 				when :t3; (@board.letters_to_points[letter.upcase_pl]==3 ? 3 : 1)
@@ -74,7 +75,7 @@ module Scrabble
 					
 				type = @board.boardtpl[row][col]
 				
-				@board.multis_used[row][col] ? 1 : (type==:dw ? 2 : type==:tw ? 3 : 1)
+				@board.multis_used[row][col] ? 1 : (type==:dw ? 2 : type==:tw ? 3 : type==:qw ? 4 : 1)
 			end
 			
 			letter_scores.inject(&:+) * word_multis.inject(&:*)
@@ -143,6 +144,7 @@ module Scrabble
 				t5 nn tw nn nn t2 nn t5 nn t2 nn nn tw nn t5
 			].map(&:to_sym).each_slice(15).to_a, # as symbols, in rows of 15
 			
+			# standard
 			letter_freq: ScrabbleDef[:letter_freq],
 			
 			points_to_letters: {
@@ -153,14 +155,48 @@ module Scrabble
 				0 => %w[?],
 			},
 		}
+		
+		Scrabble21Def = {
+			boardtpl: %w[
+				qw nn nn dl nn nn nn tw nn nn dl nn nn tw nn nn nn dl nn nn qw
+				nn dw nn nn tl nn nn nn dw nn nn nn dw nn nn nn tl nn nn dw nn
+				nn nn dw nn nn ql nn nn nn dw nn dw nn nn nn ql nn nn dw nn nn
+				dl nn nn tw nn nn dl nn nn nn tw nn nn nn dl nn nn tw nn nn dl
+				nn tl nn nn dw nn nn nn tl nn nn nn tl nn nn nn dw nn nn tl nn
+				nn nn ql nn nn dw nn nn nn dl nn dl nn nn nn dw nn nn ql nn nn
+				nn nn nn dl nn nn dw nn nn nn dl nn nn nn dw nn nn dl nn nn nn
+				tw nn nn nn nn nn nn dw nn nn nn nn nn dw nn nn nn nn nn nn tw
+				nn dw nn nn tl nn nn nn tl nn nn nn tl nn nn nn tl nn nn dw nn
+				nn nn dw nn nn dl nn nn nn dl nn dl nn nn nn dl nn nn dw nn nn
+				dl nn nn tw nn nn dl nn nn nn dw nn nn nn dl nn nn tw nn nn dl
+				nn nn dw nn nn dl nn nn nn dl nn dl nn nn nn dl nn nn dw nn nn
+				nn dw nn nn tl nn nn nn tl nn nn nn tl nn nn nn tl nn nn dw nn
+				tw nn nn nn nn nn nn dw nn nn nn nn nn dw nn nn nn nn nn nn tw
+				nn nn nn dl nn nn dw nn nn nn dl nn nn nn dw nn nn dl nn nn nn
+				nn nn ql nn nn dw nn nn nn dl nn dl nn nn nn dw nn nn ql nn nn
+				nn tl nn nn dw nn nn nn tl nn nn nn tl nn nn nn dw nn nn tl nn
+				dl nn nn tw nn nn dl nn nn nn tw nn nn nn dl nn nn tw nn nn dl
+				nn nn dw nn nn ql nn nn nn dw nn dw nn nn nn ql nn nn dw nn nn
+				nn dw nn nn tl nn nn nn dw nn nn nn dw nn nn nn tl nn nn dw nn
+				qw nn nn dl nn nn nn tw nn nn dl nn nn tw nn nn nn dl nn nn qw
+			].map(&:to_sym).each_slice(21).to_a, # as symbols, in rows of 21
+			
+			# standard, doubled
+			letter_freq: Hash[ ScrabbleDef[:letter_freq].to_a.map{|k,v| [k, v*2] } ],
+			
+			# standard
+			points_to_letters: ScrabbleDef[:points_to_letters],
+		}
 	end
 	
 	class Board
-		attr_accessor :board, :boardtpl, :points_to_letters, :letters_to_points, :base
+		attr_accessor :board, :boardtpl, :points_to_letters, :letters_to_points, :base, :base_name
 		attr_accessor :letter_freq, :letter_queue, :multis_used, :blank_replac
 		
-		def initialize base
+		def initialize base, base_name
+			@base_name = base_name
 			@base = base
+			
 			@boardtpl = @base[:boardtpl]
 			@letter_freq = @base[:letter_freq]
 			@points_to_letters = @base[:points_to_letters]
@@ -169,8 +205,11 @@ module Scrabble
 			@letters_to_points = {}
 			@points_to_letters.each_pair{|val, letters| letters.each{|let| @letters_to_points[let]=val} }
 			
-			@board = Array.new(15){Array.new 15}
-			@multis_used = Array.new(15){Array.new(15){false} }
+			height = @boardtpl.length
+			width  = @boardtpl[0].length
+			
+			@board = Array.new(height){Array.new width}
+			@multis_used = Array.new(height){Array.new(width){false} }
 			
 			@letter_queue = @letter_freq.to_a.map{|let, n| [let]*n }.flatten.shuffle
 			
@@ -242,7 +281,12 @@ module Scrabble
 			
 			
 			# 2.5. check if there is a letter in the middle - required for the first move
-			unless @board[7][7]
+			# both dimensions should be odd numbers
+			# we get *indices* of "half a board, round up"
+			middle_height = (@board.length-1)/2
+			middle_width  = (@board[0].length-1)/2
+			
+			unless @board[middle_height][middle_width]
 				raise WordError, '2.5. first word must pass through the middle field'
 			end
 			
@@ -399,11 +443,18 @@ module Scrabble
 		attr_accessor :consec_passes
 		attr_accessor :finished
 		
-		def initialize playercount, playernames, whoisadmin, mode = :scrabble
-			@history = []
+		def initialize playercount, playernames, whoisadmin, mode
+			defs = case mode
+			when :scrabble;   Definitions::ScrabbleDef
+			when :literaki;   Definitions::LiterakiDef
+			when :scrabble21; Definitions::Scrabble21Def
+			else; raise 'invalid mode'
+			end
 			
+			@board = Board.new defs, mode
+			
+			@history = []
 			@players = []
-			@board = Board.new(mode==:scrabble ? Definitions::ScrabbleDef : mode==:literaki ? Definitions::LiterakiDef : raise)
 			@whoseturn = 0
 			
 			playercount.times do |i|

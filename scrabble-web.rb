@@ -277,7 +277,7 @@ module ScrabbleWeb
 					script '', type:'text/javascript', src:'/static/mintAjax.js'
 					script '', type:'text/javascript', src:'/static/script.js'
 				end
-				body do
+				body :class=>(@game.board.base_name rescue '') do
 					yield
 				end
 			end
@@ -301,6 +301,7 @@ module ScrabbleWeb
 				
 				text 'Typ gry: ';
 				label{ input type:'radio', name:'mode', value:'scrabble', checked:'checked'; text ' Scrabble' }
+				label{ input type:'radio', name:'mode', value:'scrabble21'; text ' Scrabble21 (Super Scrabble)' }
 				label{ input type:'radio', name:'mode', value:'literaki'; text ' Literaki' }
 				br
 				
@@ -311,9 +312,12 @@ module ScrabbleWeb
 		def _board
 			board = @game.board.board
 			
+			height = board.length
+			width  = board[0].length
+			
 			div.board! do
 				span.boardloc ''
-				(1..15).each do |i|
+				(1..width).each do |i|
 					span.boardloc i.to_s
 				end
 				

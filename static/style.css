@@ -2,6 +2,7 @@
 body, input{font-family:tahoma, arial, verdana, sans-serif}
 
 #board{width:540px} /* force full no-line-breaks display on Opera Mini */
+.scrabble21 #board{width:730px}
 
 #board input, .rackletter{border:3px double grey; text-align:center; color:black}
 #board input.enab{text-transform:uppercase}
@@ -21,8 +22,10 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board .nn, .rackletter{background-color:white}
 #board .dw{background-color:salmon}
 #board .tw{background-color:red}
+#board .qw{background-color:maroon}
 #board .dl{background-color:lightblue}
 #board .tl{background-color:blue; color:white}
+#board .ql{background-color:navy; color:white}
 
 #board .t1, #board .t2, #board .t3, #board .t5{background:url('/static/dots.gif') center center no-repeat}
 #board .t1{background-color:yellow}
@@ -56,5 +59,6 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 
 
 #create{margin-left:1em}
-#history{position:absolute; top:10px; left:540px}
 
+#history{position:absolute; top:10px; left:540px}
+.scrabble21 #history{left:730px}
