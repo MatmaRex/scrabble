@@ -332,22 +332,6 @@ module Scrabble
 			
 			return words
 		end
-		
-		def test
-			require 'pp'
-			
-			# puts @dict.include? 'pąk'
-			# puts @dict.include? 'zebra'
-			
-			PP.pp check_word [ [5, 8, 'u'], [5, 9, 'y'] ]
-			PP.pp check_word [ [4, 7, 'u'], [4, 8, 'y'], [4, 9, 'z'] ]
-			PP.pp check_word [ [5, 6, 'u'], [6, 6, 'y'], [7, 6, 'z'] ]
-			
-			
-			PP.pp check_word([ [0,0, 'p'], [0,1, 'ą'], [0,2, 'k'] ])
-			PP.pp check_word([ [0,0, 'p'], [0,1, 'ą'], [0,2, 'k'] ]).map &:score
-		end
-		
 	end
 	
 	class HistoryEntry
@@ -514,17 +498,4 @@ module Scrabble
 			end
 		end
 	end
-end
-
-
-
-
-
-
-
-if __FILE__ == $0
-	bb = Scrabble::Board.new
-	bb[7][5...(5+8)] = 'scrabble'.split ''
-
-	bb.test
 end
