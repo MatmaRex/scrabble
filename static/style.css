@@ -16,15 +16,21 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board input.enab{font-size:20px}
 #board input.disab, .rackletter{font-size:15px}
 
-#board input.enab:focus{background:yellow; color:black}
+#board input.enab:focus{background:yellow; color:black; outline:2px solid red; outline-offset:-1px}
 
-#board .nn, .rackletter{background:white}
-#board .dw{background:salmon}
-#board .tw{background:red}
-#board .dl{background:lightblue}
-#board .tl{background:blue; color:white}
+#board .nn, .rackletter{background-color:white}
+#board .dw{background-color:salmon}
+#board .tw{background-color:red}
+#board .dl{background-color:lightblue}
+#board .tl{background-color:blue; color:white}
 
-#board .hilit{background-image:url('/static/hilit.gif')}
+#board .t1, #board .t2, #board .t3, #board .t5{background:url('/static/dots.gif') center center no-repeat}
+#board .t1{background-color:yellow}
+#board .t2{background-color:lightgreen}
+#board .t3{background-color:lightblue}
+#board .t5{background-color:lightpink}
+
+#board .hilit{outline:4px solid black; outline-offset:-1px}
 
 
 #rackdropzone{height:30px}

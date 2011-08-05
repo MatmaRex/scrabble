@@ -49,8 +49,15 @@ module Scrabble
 				end
 					
 				type = @board.boardtpl[row][col]
-				
-				multi = @board.multis_used[row][col] ? 1 : (type==:dl ? 2 : type==:tl ? 3 : 1)
+				multi = case type
+				when :dl; 2
+				when :tl; 3
+				when :t1; (@board.letters_to_points[letter.upcase_pl]==1 ? 3 : 1)
+				when :t2; (@board.letters_to_points[letter.upcase_pl]==2 ? 3 : 1)
+				when :t3; (@board.letters_to_points[letter.upcase_pl]==3 ? 3 : 1)
+				when :t5; (@board.letters_to_points[letter.upcase_pl]==5 ? 3 : 1)
+				else;     1
+				end
 				
 				# for blanks, aka lowercase letters, this will be 0
 				(@board.letters_to_points[letter]||0) * multi
@@ -74,12 +81,9 @@ module Scrabble
 		end
 	end
 	
-	class Board
-		attr_accessor :board, :boardtpl, :points_to_letters, :letters_to_points, :dict
-		attr_accessor :letter_freq, :letter_queue, :multis_used, :blank_replac
-		
-		def initialize board = Array.new(15){Array.new 15}
-			@boardtpl = %w[
+	module Definitions
+		ScrabbleDef = {
+			boardtpl: %w[
 				tw nn nn dl nn nn nn tw nn nn nn dl nn nn tw
 				nn dw nn nn nn tl nn nn nn tl nn nn nn dw nn
 				nn nn dw nn nn nn dl nn dl nn nn nn dw nn nn
@@ -95,9 +99,9 @@ module Scrabble
 				nn nn dw nn nn nn dl nn dl nn nn nn dw nn nn
 				nn dw nn nn nn tl nn nn nn tl nn nn nn dw nn
 				tw nn nn dl nn nn nn tw nn nn nn dl nn nn tw
-			].map(&:to_sym).each_slice(15).to_a # as symbols, in rows of 15
+			].map(&:to_sym).each_slice(15).to_a, # as symbols, in rows of 15
 			
-			@letter_freq = {
+			letter_freq: {
 				'A'=>9, 'E'=>7, 'I'=>8, 'N'=>5, 'O'=>6, 'R'=>4, 'S'=>4, 'W'=>4, 'Z'=>5,
 				'C'=>3, 'D'=>3, 'K'=>3, 'L'=>3, 'M'=>3, 'P'=>3, 'T'=>3, 'Y'=>4,
 				'B'=>2, 'G'=>2, 'H'=>2, 'J'=>2, 'Ł'=>2, 'U'=>2,
@@ -106,10 +110,10 @@ module Scrabble
 				'Ń'=>1,
 				'Ź'=>1,
 				'?'=>2,
-			}
+			},
 			
-			@points_to_letters = {
-				1 => %W[A E I N O R S W Z],
+			points_to_letters: {
+				1 => %w[A E I N O R S W Z],
 				2 => %w[C D K L M P T Y],
 				3 => %w[B G H J Ł U],
 				5 => %w[Ą Ę F Ó Ś Ż],
@@ -117,23 +121,61 @@ module Scrabble
 				7 => %w[Ń],
 				9 => %w[Ź],
 				0 => %w[?],
-			}
+			},
+		}
+		
+		LiterakiDef = {
+			boardtpl: %w[
+				t5 nn tw nn nn t2 nn t5 nn t2 nn nn tw nn t5
+				nn nn nn nn t2 nn t5 nn t5 nn t2 nn nn nn nn
+				tw nn nn t2 nn dw nn t1 nn dw nn t2 nn nn tw
+				nn nn t2 nn dw nn t1 nn t1 nn dw nn t2 nn nn
+				nn t2 nn dw nn t1 nn nn nn t1 nn dw nn t2 nn
+				t2 nn dw nn t1 nn nn t3 nn nn t1 nn dw nn t2
+				nn t5 nn t1 nn nn t3 nn t3 nn nn t1 nn t5 nn
+				t5 nn t1 nn nn t3 nn t5 nn t3 nn nn t1 nn t5
+				nn t5 nn t1 nn nn t3 nn t3 nn nn t1 nn t5 nn
+				t2 nn dw nn t1 nn nn t3 nn nn t1 nn dw nn t2
+				nn t2 nn dw nn t1 nn nn nn t1 nn dw nn t2 nn
+				nn nn t2 nn dw nn t1 nn t1 nn dw nn t2 nn nn
+				tw nn nn t2 nn dw nn t1 nn dw nn t2 nn nn tw
+				nn nn nn nn t2 nn t5 nn t5 nn t2 nn nn nn nn
+				t5 nn tw nn nn t2 nn t5 nn t2 nn nn tw nn t5
+			].map(&:to_sym).each_slice(15).to_a, # as symbols, in rows of 15
+			
+			letter_freq: ScrabbleDef[:letter_freq],
+			
+			points_to_letters: {
+				1 => %w[A E I N O R S W Z],
+				2 => %w[C D K L M P T Y],
+				3 => %w[B G H J Ł U],
+				5 => %w[Ą Ę F Ó Ś Ż Ć Ń Ź],
+				0 => %w[?],
+			},
+		}
+	end
+	
+	class Board
+		attr_accessor :board, :boardtpl, :points_to_letters, :letters_to_points, :base
+		attr_accessor :letter_freq, :letter_queue, :multis_used, :blank_replac
+		
+		def initialize base
+			@base = base
+			@boardtpl = @base[:boardtpl]
+			@letter_freq = @base[:letter_freq]
+			@points_to_letters = @base[:points_to_letters]
+			
 			
 			@letters_to_points = {}
 			@points_to_letters.each_pair{|val, letters| letters.each{|let| @letters_to_points[let]=val} }
 			
-			@board = board
+			@board = Array.new(15){Array.new 15}
 			@multis_used = Array.new(15){Array.new(15){false} }
 			
 			@letter_queue = @letter_freq.to_a.map{|let, n| [let]*n }.flatten.shuffle
 			
 			@blank_replac = {} # {[row, col] => 'X', ...}
 		end
-		
-		def clone
-			Board.new(@board.dup.map &:dup) # deep-clone
-		end
-		alias dup clone
 		
 		def [] a
 			@board[a]
@@ -161,7 +203,7 @@ module Scrabble
 			return major_word
 		end
 		
-		def check_word letters, rack, blank_replac, do_write=false
+		def place_word letters, rack, blank_replac
 			# letters - array of col, row, letter
 			# rack - array of letters
 			# blank_replac - array of letters
@@ -190,8 +232,6 @@ module Scrabble
 			
 			
 			# 2. sanity check, attempt to place the letters on board
-			board_saved = self.clone
-			
 			letters.each do |col, row, letter|
 				if @board[row][col].nil?
 					@board[row][col] = letter
@@ -324,12 +364,6 @@ module Scrabble
 			# sort once again, this time by word length - so the most important words go first
 			words = words.sort_by{|w| w.length}.reverse
 			
-			
-			# restore the board
-			# TODO: fix this
-			@board = board_saved.board unless do_write
-			
-			
 			return words
 		end
 	end
@@ -369,7 +403,7 @@ module Scrabble
 			@history = []
 			
 			@players = []
-			@board = Board.new
+			@board = Board.new(mode==:scrabble ? Definitions::ScrabbleDef : mode==:literaki ? Definitions::LiterakiDef : raise)
 			@whoseturn = 0
 			
 			playercount.times do |i|
@@ -396,7 +430,7 @@ module Scrabble
 			cur_player = @players[playerid]
 			
 			# this will raise Scrabble::WordError if anything's not right
-			words = @board.check_word letts, cur_player.letters, blank_replac, true
+			words = @board.place_word letts, cur_player.letters, blank_replac
 			
 			# if we get here, we can assume all words are correct
 			
