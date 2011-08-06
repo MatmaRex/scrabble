@@ -370,9 +370,16 @@ module ScrabbleWeb
 		# Mab.set(:indent, 2) if !$production
 		
 		def layout
+			titlebits = [
+				@pagetitle, # may be nil - for index
+				'Scrabble',
+				($heroku ? '' : $production ? '(local)' : '(dev)')
+			]
+			
 			html do
 				head do
-					title(@pagetitle ? "#{@pagetitle} - Scrabble" : "Scrabble")
+					title titlebits.select{|bit| bit and bit!=''}.join ' - '
+					
 					link rel:'stylesheet', type:'text/css', href:'/static/style.css'
 					script '', type:'text/javascript', src:'/static/mintAjax.js'
 					script '', type:'text/javascript', src:'/static/script.js'
