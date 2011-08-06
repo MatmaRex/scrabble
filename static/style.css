@@ -58,7 +58,8 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 .winner{border-color:oldgold; background:#ffd}
 
 
-#create{margin-left:1em}
+#create .prompt{text-align:right}
+#create .value{}
 
 #history{position:absolute; top:10px; left:540px}
 .scrabble21 #history{left:730px}

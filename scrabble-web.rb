@@ -393,21 +393,40 @@ module ScrabbleWeb
 			
 			p 'Utwórz nową:'
 			form.create! method:'post', action:'/new!' do
-				text 'Nazwa gry: '; input.gamename!; br
-				text 'Liczba graczy (1-4): '; input.players!; br
-				text 'Nicki kolejnych graczy (opcj.): '
-				(0..3).each do |i|
-					input name:"player#{i}"; text ' '
-				end; br
-				text 'Chcę być graczem numer: (1-4) '; input.whoisadmin!; br
-				
-				text 'Typ gry: ';
-				label{ input type:'radio', name:'mode', value:'scrabble', checked:'checked'; text ' Scrabble' }
-				label{ input type:'radio', name:'mode', value:'scrabble21'; text ' Scrabble21 (Super Scrabble)' }
-				label{ input type:'radio', name:'mode', value:'literaki'; text ' Literaki' }
-				br
-				
-				input type:'submit'
+				table do
+					tr do
+						td.prompt 'Nazwa gry (dozwolone litery bez polskich znaków, cyfry, _, -): '
+						td.value{input.gamename!}
+					end
+					tr do
+						td.prompt 'Liczba graczy (1-4): '
+						td.value{input.players!}
+					end
+					tr do
+						td.prompt 'Nicki kolejnych graczy (opcj.): '
+						td.value do
+							(0..3).each do |i|
+								input name:"player#{i}"; text ' '
+							end
+						end
+					end
+					tr do
+						td.prompt 'Chcę być graczem numer (1-4, domyślnie 1): '
+						td.value{input.whoisadmin!}
+					end
+					tr do
+						td.prompt 'Typ gry: '
+						td.value do
+							label{ input type:'radio', name:'mode', value:'scrabble', checked:'checked'; text ' Scrabble ' }
+							label{ input type:'radio', name:'mode', value:'scrabble21'; text ' Scrabble21 (Super Scrabble) ' }
+							label{ input type:'radio', name:'mode', value:'literaki'; text ' Literaki ' }
+						end
+					end
+					tr do
+						td.prompt ''
+						td.value{input type:'submit', value:'Utwórz grę'}
+					end
+				end
 			end
 		end
 		
