@@ -20,7 +20,15 @@ require 'pg' if $heroku
 
 def get_conn
 	_, user, pass, host, db = *ENV['DATABASE_URL'].match(%r|\Apostgres://(.+?):(.+?)@(.+?)/(.+)\Z|)
-	PGconn.new host, 5432, '', '', db, user, pass
+	conn = PGconn.new host, 5432, '', '', db, user, pass
+	
+	# create table if it doesn't exist
+	begin
+		conn.exec 'CREATE TABLE games (name text, base64_marshal text)'
+	rescue Exception
+	end
+	
+	conn
 end
 
 def fname_for gamename
@@ -64,7 +72,7 @@ end
 def game_exist? gamename
 	if $heroku
 		conn = get_conn()
-		exist = conn.exec("SELECT name FROM games WHERE name LIKE '#{gamename}'").getvalue(0,0)
+		exist = (conn.exec("SELECT name FROM games WHERE name LIKE '#{gamename}'").getvalue(0,0) rescue false)
 		conn.finish
 		!!exist
 	else
@@ -90,8 +98,19 @@ module ScrabbleWeb
 		
 		class Index
 			def get
-				@gamelist = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
+				if $heroku
+					conn = get_conn()
+					
+					@gamelist = []
+					res = conn.exec("SELECT name FROM games")
+					res.each{|row| @gamelist << row['name'] }
+				else
+					@gamelist = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
+				end
+				
 				render :home
+			rescue
+				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
 			end
 		end
 		

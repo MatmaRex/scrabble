@@ -5,10 +5,10 @@ require 'rest-client'
 
 class String
 	def upcase_pl
-		upcase.tr('ążśźęćńół', 'ĄŻŚŹĘĆŃÓŁ')
+		self.force_encoding('utf-8').upcase.tr('ążśźęćńół', 'ĄŻŚŹĘĆŃÓŁ')
 	end
 	def downcase_pl
-		downcase.tr('ĄŻŚŹĘĆŃÓŁ', 'ążśźęćńół')
+		self.force_encoding('utf-8').downcase.tr('ĄŻŚŹĘĆŃÓŁ', 'ążśźęćńół')
 	end
 end
 
@@ -365,8 +365,6 @@ module Scrabble
 			
 			
 			# 5. check the words in dictionary
-			base = 'http://www.sjp.pl/'
-			dop = %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
 			
 			# only now we have to substitute the blanks
 			# sort - first the topmost, leftmost, horizontal words
@@ -398,9 +396,16 @@ module Scrabble
 				
 			end
 			
+			
+			baseurl = 'http://www.sjp.pl/'
+			dop = %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
+			
 			# actually checking words here
 			words.each do |w|
-				unless (RestClient.get base+(CGI.escape w.letters.join(''))) =~ dop
+				response = RestClient.get baseurl+(CGI.escape w.letters.join(''))
+				response = response.encode('ascii-8bit', :invalid => :replace, :undef => :replace) # heroku throws up on "invalid bytes"
+				
+				unless response =~ dop
 					raise WordError, '5. incorrect word: '+ w.letters.join('')
 				end
 			end
