@@ -364,6 +364,59 @@ module ScrabbleWeb
 				render :manage
 			end
 		end
+		
+		class Recalc < R '/recalc!/([a-zA-Z0-9_-]+)'
+			def get gamename
+				@game = get_game gamename
+				#@newgame = Scrabble::Game.new 4, %w[Natalia	Tymek	Bartosz	Krzysiek], 0, :scrabble
+				@newgame = Scrabble::Game.new @game.players.length, ['','','',''], 0, :scrabble
+				#@newgame.letter_queue = []
+				
+				out = []
+				
+				@game.history.each_with_index do |entry, move_no|
+					p entry
+					
+					if entry.mode == :word
+						letts = []
+						entry.words.each do |word|
+							word.letters.each_with_index do |lett, i|
+								col = word.col + (word.direction == :verti ? 0 : i)
+								row = word.row + (word.direction == :verti ? i : 0)
+								letts << [col, row, lett] unless @newgame.board.board[row][col]
+							end
+						end
+						letts.uniq!
+						
+						blank_replac = []
+						letts.map! do |arr|
+							if arr[2].downcase_pl==arr[2] # its a blank
+								blank_replac << arr[2].upcase_pl
+								arr[2] = '?'
+							end
+							
+							arr
+						end
+						
+						who = move_no % @game.players.length
+						who_next = (move_no+1) % @game.players.length
+						
+						@newgame.players[who].letters = entry.rack.clone
+						@newgame.do_move letts, blank_replac, who, true
+						@newgame.whoseturn = who_next
+						
+						diff = @newgame.history[-1].score - entry.score
+						out << diff if diff!=0
+					elsif entry.mode == :change || entry.mode == :pass
+						@newgame.history << entry
+					end
+				end
+				
+				put_game gamename+'-re', @newgame
+				
+				out.join '<br>'
+			end
+		end
 	end
 	
 	module Views

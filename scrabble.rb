@@ -324,7 +324,7 @@ module Scrabble
 			return major_word
 		end
 		
-		def place_word letters, rack, blank_replac
+		def place_word letters, rack, blank_replac, force=false
 			# letters - array of col, row, letter
 			# rack - array of letters
 			# blank_replac - array of letters
@@ -441,7 +441,7 @@ module Scrabble
 			# 4.5. only letters from rack are used
 			# as late as here, since wrong placement errors are much more common
 			lets = letters.map{|a| a[2]}
-			unless lets.uniq.all?{|let| rack.count(let) >= lets.count(let)}
+			if !force and lets.uniq.all?{|let| rack.count(let) >= lets.count(let)}
 				raise WordError, '4.5. you can only use letters from your rack'
 			end
 			
@@ -482,7 +482,7 @@ module Scrabble
 			#6. check the words in dictionary
 			words.each do |w|
 				w = w.letters.join('')
-				unless method(@dict_check).call w
+				if !force and method(@dict_check).call w
 					raise WordError, '6. incorrect word: '+ w
 				end
 			end
@@ -562,11 +562,11 @@ module Scrabble
 			@players.any?{|pl| pl.letters.empty?} or (@consec_passes||0) >= @players.length*2
 		end
 		
-		def do_move letts, blank_replac, playerid
+		def do_move letts, blank_replac, playerid, force=false
 			cur_player = @players[playerid]
 			
 			# this will raise Scrabble::WordError if anything's not right
-			words = @board.place_word letts, cur_player.letters, blank_replac
+			words = @board.place_word letts, cur_player.letters, blank_replac, force
 			
 			# if we get here, we can assume all words are correct
 			
