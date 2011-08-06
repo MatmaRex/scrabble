@@ -15,24 +15,61 @@ end
 
 require 'json'
 require 'camping'
+require 'pg' if $heroku
 
+
+def get_conn
+	_, user, pass, host, db = *ENV['DATABASE_URL'].match(%r|\Apostgres://(.+?):(.+?)@(.+?)/(.+)\Z|)
+	PGconn.new host, 5432, '', '', db, user, pass
+end
 
 def fname_for gamename
 	'./games/' + "#{gamename}-game"
 end
 
+
 def get_game gamename
-	game = Marshal.load File.binread fname_for gamename
-	game.players.map!{|pl| (pl.is_a?(Scrabble::Player) ? pl : Scrabble::Player.new(pl) )}
-	game
+	if $heroku
+		conn = get_conn()
+		game = conn.exec("SELECT base64_marshal FROM games WHERE name LIKE '#{gamename}'")[0]['base64_marshal']
+		conn.finish
+		game = Marshal.load Base64.decode64 game
+		game
+	else
+		game = Marshal.load File.binread fname_for gamename
+		game.players.map!{|pl| (pl.is_a?(Scrabble::Player) ? pl : Scrabble::Player.new(pl) )} # workaround for superold games
+		game
+	end
 end
 
 def put_game gamename, game
-	File.open(fname_for(gamename), 'wb'){|f| f.write Marshal.dump game}
+	if $heroku
+		updating = (game_exist? gamename)
+		
+		conn = get_conn()
+		data = Base64.encode64 Marshal.dump game
+		
+		if updating
+			conn.exec "UPDATE games SET base64_marshal='#{data}' WHERE name LIKE '#{gamename}'"
+		else
+			conn.exec "INSERT INTO games VALUES ('#{gamename}', '#{data}')"
+		end
+		
+		conn.finish
+	else
+		File.open(fname_for(gamename), 'wb'){|f| f.write Marshal.dump game}
+	end
 end
 
 def game_exist? gamename
-	File.exist? fname_for gamename
+	if $heroku
+		conn = get_conn()
+		exist = conn.exec("SELECT name FROM games WHERE name LIKE '#{gamename}'").getvalue(0,0)
+		conn.finish
+		!!exist
+	else
+		File.exist? fname_for gamename
+	end
 end
 
 
