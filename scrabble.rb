@@ -21,6 +21,35 @@ class Array
 	end
 end
 
+
+def dict_check_pl word
+	response = RestClient.get 'http://www.sjp.pl/'+(CGI.escape word)
+	response = response.encode('ascii-8bit', :invalid => :replace, :undef => :replace) # heroku throws up on "invalid bytes"
+	
+	response =~ %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
+end
+
+def dict_check_en word
+	payload = <<-SOAP
+		<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+			<soap:Body>
+				<CheckWord xmlns="http://tempuri.org/">
+					<Word>#{word.upcase}</Word>
+				</CheckWord>
+			</soap:Body>
+		</soap:Envelope>
+	SOAP
+	
+	response = RestClient.post(
+		'http://www.collinslanguage.com/widgets/webservices/CollinsScrabble.asmx',
+		payload,
+		'Content-type' => 'text/xml; charset=utf-8'
+	)
+	
+	response =~ %r|<IsValidWord>True</IsValidWord>|
+end
+
+
 module Scrabble
 	class WordError < StandardError
 	end
@@ -123,6 +152,8 @@ module Scrabble
 				9 => %w[Ź],
 				0 => %w[?],
 			},
+			
+			dict_check: :dict_check_pl,
 		}
 		
 		LiterakiDef = {
@@ -144,7 +175,6 @@ module Scrabble
 				t5 nn tw nn nn t2 nn t5 nn t2 nn nn tw nn t5
 			].map(&:to_sym).each_slice(15).to_a, # as symbols, in rows of 15
 			
-			# standard
 			letter_freq: ScrabbleDef[:letter_freq],
 			
 			points_to_letters: {
@@ -154,6 +184,8 @@ module Scrabble
 				5 => %w[Ą Ę F Ó Ś Ż Ć Ń Ź],
 				0 => %w[?],
 			},
+			
+			dict_check: ScrabbleDef[:dict_check],
 		}
 		
 		Scrabble21Def = {
@@ -184,8 +216,57 @@ module Scrabble
 			# standard, doubled
 			letter_freq: Hash[ ScrabbleDef[:letter_freq].to_a.map{|k,v| [k, v*2] } ],
 			
-			# standard
 			points_to_letters: ScrabbleDef[:points_to_letters],
+			
+			dict_check: ScrabbleDef[:dict_check],
+		}
+		
+		ScrabbleEnglishDef = {
+			boardtpl: ScrabbleDef[:boardtpl],
+			
+			letter_freq: {
+				'E'=>12, 'A'=>9, 'I'=>9, 'O'=>8, 'N'=>6, 'R'=>6, 'T'=>6, 'L'=>4, 'S'=>4, 'U'=>4,
+				'D'=>4, 'G'=>3,
+				'B'=>2, 'C'=>2, 'M'=>2, 'P'=>2,
+				'F'=>2, 'H'=>2, 'V'=>2, 'W'=>2, 'Y'=>2,
+				'K'=>1,
+				'J'=>1, 'X'=>1,
+				'Q'=>1, 'Z'=>1,
+				'?'=>2,
+			},
+			
+			points_to_letters: {
+				1 => %w[E A I O N R T L S U],
+				2 => %w[D G],
+				3 => %w[B C M P],
+				4 => %w[F H V W Y],
+				5 => %w[K],
+				8 => %w[J X],
+				10=> %w[Q Z],
+				0 => %w[?],
+			},
+			
+			dict_check: :dict_check_en,
+		}
+		
+		Scrabble21EnglishDef = {
+			boardtpl: Scrabble21Def[:boardtpl],
+			
+			# this is not simply doubled normal
+			letter_freq: {
+				'E'=>24, 'A'=>16, 'O'=>15, 'T'=>15, 'I'=>13, 'N'=>13, 'R'=>13, 'S'=>10, 'L'=>7, 'U'=>7,
+				'D'=>8, 'G'=>5,
+				'C'=>6, 'M'=>6, 'B'=>4, 'P'=>4,
+				'H'=>5, 'F'=>4, 'W'=>4, 'Y'=>4, 'V'=>3,
+				'K'=>2,
+				'J'=>2, 'X'=>2,
+				'Q'=>2, 'Z'=>2,
+				'?'=>4,
+			},
+			
+			points_to_letters: ScrabbleEnglishDef[:points_to_letters],
+			
+			dict_check: ScrabbleEnglishDef[:dict_check],
 		}
 	end
 	
@@ -200,6 +281,7 @@ module Scrabble
 			@boardtpl = @base[:boardtpl]
 			@letter_freq = @base[:letter_freq]
 			@points_to_letters = @base[:points_to_letters]
+			@dict_check = @base[:dict_check]
 			
 			
 			@letters_to_points = {}
@@ -364,7 +446,7 @@ module Scrabble
 			end
 			
 			
-			# 5. check the words in dictionary
+			# 5. replace blanks
 			
 			# only now we have to substitute the blanks
 			# sort - first the topmost, leftmost, horizontal words
@@ -397,18 +479,14 @@ module Scrabble
 			end
 			
 			
-			baseurl = 'http://www.sjp.pl/'
-			dop = %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
-			
-			# actually checking words here
+			#6. check the words in dictionary
 			words.each do |w|
-				response = RestClient.get baseurl+(CGI.escape w.letters.join(''))
-				response = response.encode('ascii-8bit', :invalid => :replace, :undef => :replace) # heroku throws up on "invalid bytes"
-				
-				unless response =~ dop
-					raise WordError, '5. incorrect word: '+ w.letters.join('')
+				w = w.letters.join('')
+				unless method(@dict_check).call w
+					raise WordError, '6. incorrect word: '+ w
 				end
 			end
+			
 			
 			# sort once again, this time by word length - so the most important words go first
 			words = words.sort_by{|w| w.length}.reverse
@@ -450,9 +528,11 @@ module Scrabble
 		
 		def initialize playercount, playernames, whoisadmin, mode
 			defs = case mode
-			when :scrabble;   Definitions::ScrabbleDef
-			when :literaki;   Definitions::LiterakiDef
-			when :scrabble21; Definitions::Scrabble21Def
+			when :scrabble;     Definitions::ScrabbleDef
+			when :literaki;     Definitions::LiterakiDef
+			when :scrabble21;   Definitions::Scrabble21Def
+			when :scrabbleen;   Definitions::ScrabbleEnglishDef
+			when :scrabble21en; Definitions::Scrabble21EnglishDef
 			else; raise 'invalid mode'
 			end
 			

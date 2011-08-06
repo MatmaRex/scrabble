@@ -418,8 +418,10 @@ module ScrabbleWeb
 						td.prompt 'Typ gry: '
 						td.value do
 							label{ input type:'radio', name:'mode', value:'scrabble', checked:'checked'; text ' Scrabble ' }
-							label{ input type:'radio', name:'mode', value:'scrabble21'; text ' Scrabble21 (Super Scrabble) ' }
-							label{ input type:'radio', name:'mode', value:'literaki'; text ' Literaki ' }
+							label{ input type:'radio', name:'mode', value:'scrabble21';                  text ' Super Scrabble ' }
+							label{ input type:'radio', name:'mode', value:'literaki';                    text ' Literaki ' }
+							label{ input type:'radio', name:'mode', value:'scrabbleen'  ;                text ' Scrabble (English)' }
+							label{ input type:'radio', name:'mode', value:'scrabble21en';                text ' Super Scrabble (English) ' }
 						end
 					end
 					tr do
