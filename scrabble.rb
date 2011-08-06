@@ -90,7 +90,7 @@ module Scrabble
 				end
 				
 				# for blanks, aka lowercase letters, this will be 0
-				(@board.letters_to_points[letter]||0) * multi
+				(@board.letters_to_points[letter]||0) * (@board.multis_used[row][col] ? 1 :multi)
 			end
 			
 			word_multis = letters.map.with_index do |letter, ind|
