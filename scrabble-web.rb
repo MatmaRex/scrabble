@@ -85,6 +85,16 @@ def put_game gamename, game
 	end
 end
 
+def delete_game gamename
+	if $heroku
+		conn = get_conn()
+		game = conn.exec("DELETE FROM games WHERE name LIKE '#{gamename}'")
+		conn.finish
+	else
+		File.delete fname_for gamename
+	end
+end
+
 def game_exist? gamename
 	if $heroku
 		conn = get_conn()
@@ -327,6 +337,33 @@ module ScrabbleWeb
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
 			end
 		end
+		
+		class Manage < R '/manage!'
+			def get
+				@gamelist = get_list_of_games
+				render :manage
+			end
+			
+			def post
+				return 'Wrong pass.' if @request['pass']!='magicznehaslo'
+				
+				@deleted = []
+				
+				@request.params.each_pair do |gameinfo, checked|
+					if gameinfo =~ /-kill\Z/
+						_, gamename = *gameinfo.match(/\A(.+)-kill\Z/)
+						
+						if checked and checked!=''
+							delete_game gamename
+							@deleted << gamename
+						end
+					end
+				end
+				
+				@gamelist = get_list_of_games
+				render :manage
+			end
+		end
 	end
 	
 	module Views
@@ -348,10 +385,12 @@ module ScrabbleWeb
 		
 		def home
 			p 'Sup.'
-			p 'Lista gier:'
+			
+			p{"Lista gier (admin: #{a 'zarządzaj', href:R(Manage)}):"}
 			ul do
 				@gamelist.each{|game| li{a game, href:"/#{game}"} }
 			end
+			
 			p 'Utwórz nową:'
 			form.create! method:'post', action:'/new!' do
 				text 'Nazwa gry: '; input.gamename!; br
@@ -369,6 +408,28 @@ module ScrabbleWeb
 				br
 				
 				input type:'submit'
+			end
+		end
+		
+		def manage
+			if @deleted and !@deleted.empty?
+				p 'Usunięto: '+@deleted.join(', ')
+			end
+			
+			form method:'post', action:R(Manage) do
+				p{text 'Hasło: '; input.pass! type:'password'}
+				
+				ul do
+					@gamelist.each do |gamename|
+						li do 
+							a gamename, href:"/#{gamename}"
+							text ' '
+							input name:"#{gamename}-kill", type:'checkbox'
+						end
+					end
+				end
+				
+				input type:'submit', value:'Usuń zaznaczone'
 			end
 		end
 		
