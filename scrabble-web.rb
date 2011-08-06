@@ -36,6 +36,22 @@ def fname_for gamename
 end
 
 
+def get_list_of_games
+	if $heroku
+		conn = get_conn()
+		
+		list = []
+		res = conn.exec("SELECT name FROM games")
+		res.each{|row| list << row['name'] }
+		conn.finish
+	else
+		list = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
+	end
+	
+	list
+end
+
+
 def get_game gamename
 	if $heroku
 		conn = get_conn()
@@ -98,16 +114,7 @@ module ScrabbleWeb
 		
 		class Index
 			def get
-				if $heroku
-					conn = get_conn()
-					
-					@gamelist = []
-					res = conn.exec("SELECT name FROM games")
-					res.each{|row| @gamelist << row['name'] }
-				else
-					@gamelist = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
-				end
-				
+				@gamelist = get_list_of_games
 				render :home
 			rescue
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
