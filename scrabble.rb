@@ -441,7 +441,7 @@ module Scrabble
 			# 4.5. only letters from rack are used
 			# as late as here, since wrong placement errors are much more common
 			lets = letters.map{|a| a[2]}
-			if !force and lets.uniq.all?{|let| rack.count(let) >= lets.count(let)}
+			unless force or lets.uniq.all?{|let| rack.count(let) >= lets.count(let)}
 				raise WordError, '4.5. you can only use letters from your rack'
 			end
 			
@@ -482,7 +482,7 @@ module Scrabble
 			#6. check the words in dictionary
 			words.each do |w|
 				w = w.letters.join('')
-				if !force and method(@dict_check).call w
+				unless force or method(@dict_check).call w
 					raise WordError, '6. incorrect word: '+ w
 				end
 			end
