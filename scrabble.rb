@@ -491,6 +491,12 @@ module Scrabble
 			# sort once again, this time by word length - so the most important words go first
 			words = words.sort_by{|w| w.length}.reverse
 			
+			# major word always goes first
+			if major_word and major_word.length>1
+				words.delete major_word
+				words = [major_word] + words
+			end
+			
 			return words
 		end
 	end
@@ -648,7 +654,9 @@ module Scrabble
 				
 				
 				adj.rotate! @whoseturn
-				@history += adj.map{|pt| Scrabble::HistoryEntry.new(:adj, nil, nil, pt)}
+				@history += adj.map.with_index do |pt, i|
+					Scrabble::HistoryEntry.new(:adj, @players[(@whoseturn+i) % @players.length].letters.clone, nil, pt)
+				end
 				
 				return true
 			else

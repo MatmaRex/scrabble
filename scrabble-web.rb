@@ -314,6 +314,81 @@ module ScrabbleWeb
 			end
 		end
 		
+		class Kurnik < R '/raw!/([a-zA-Z0-9_-]+)'
+			def get gamename
+				@game = get_game gamename
+				lines = []
+				
+				@game.players.each do |pl|
+					lines << "##{pl.id+1} #{pl.name.gsub(/[^a-zA-Z0-9_-]/, '_')} : #{pl.points}"
+				end
+				lines << ''
+				
+				pl_count = @game.players.length
+				@game.history.each_with_index do |entry, move_no|
+					ln = []
+					
+					# move number - only on first player
+					ln << "#{move_no/pl_count + 1}." if move_no%pl_count == 0
+					
+					# rack
+					rack = entry.rack || @game.history[move_no - pl_count].rack # rack is empty for :adj entries
+					ln << rack.join('').downcase_pl.gsub('?', '_') + ':'
+					
+					# word, pass, change, adj
+					if entry.mode == :word
+						# position
+						mj_word = entry.words[0]
+						ln << ('a'..'z').to_a[ mj_word.col ]  +  (mj_word.row+1).to_s  +  (mj_word.direction==:verti ? '+' : '-')
+						
+						# words
+						ln << entry.words.map{|w| w.letters.map{|l| l.downcase_pl==l ? "[#{l}]" : l.downcase_pl}.join '' }.join('/')
+						
+						# points
+						ln << "+#{entry.score}"
+					elsif entry.mode == :change
+						# we need to calculate difference between current and next rack
+						curr_rack = entry.rack.clone
+						next_rack = @game.history[move_no + pl_count].rack.clone
+						
+						# remove letters that occur in both racks
+						kill = []
+						curr_rack.each_with_index do |l, curr_ind|
+							ind = next_rack.index l
+							if ind
+								next_rack.delete_at ind 
+								kill << curr_ind
+							end
+						end
+						kill.reverse_each{|i| curr_rack.delete_at i}
+						
+						# the letters left in both racks are the ones exchanged
+						
+						ln << curr_rack.join('').downcase_pl.gsub('?', '_') + ':'
+						ln << '->'
+						ln << next_rack.join('').downcase_pl.gsub('?', '_') + ':'
+					elsif entry.mode == :pass
+						ln << 'P'
+					elsif entry.mode == :adj
+						kind = (entry.score<=0 ? '-' : '+')
+						
+						if kind=='+' # if we got extra, there's nothing on rack
+							ln.pop
+							ln << ':'
+						end
+						
+						ln << 'L'
+						ln << kind + (entry.score.abs.to_s)
+					end
+					
+					lines << ln.join(' ')
+				end
+				
+				@headers['content-type'] = 'text/plain'
+				lines.join "\n"
+			end
+		end
+		
 		class JoinGame < R '/join!'
 			def post
 				@gamename, @password = @request['game'], @request['password']
