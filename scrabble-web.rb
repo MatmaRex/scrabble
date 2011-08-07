@@ -368,9 +368,7 @@ module ScrabbleWeb
 		class Recalc < R '/recalc!/([a-zA-Z0-9_-]+)'
 			def get gamename
 				@game = get_game gamename
-				#@newgame = Scrabble::Game.new 4, %w[Natalia	Tymek	Bartosz	Krzysiek], 0, :scrabble
-				@newgame = Scrabble::Game.new @game.players.length, ['','','',''], 0, :scrabble
-				#@newgame.letter_queue = []
+				@newgame = Scrabble::Game.new @game.players.length, @game.players.map(&:name), 0, :scrabble
 				
 				out = []
 				
