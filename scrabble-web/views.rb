@@ -28,10 +28,10 @@ module ScrabbleWeb
 		def home
 			p.langs! do
 				langs = %w[pl en]
-				cur_lang = (langs.include?(get_lang) ? get_lang : 'en')
+				
 				text 'Język: '
 				langs.each do |lang|
-					a lang, :href=>R(Lang, lang), :class=>(lang==cur_lang ? 'curlang' : '')
+					a lang, :href=>R(Lang, lang), :class=>(lang==get_lang ? 'curlang' : '')
 					text ' '
 				end
 			end

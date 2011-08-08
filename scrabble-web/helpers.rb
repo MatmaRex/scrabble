@@ -104,7 +104,22 @@ module ScrabbleWeb
 		
 		# This also sets the cookie if it's missing!
 		def get_lang
-			@cookies['lang'] ||= get_lang_from_headers
+			langs = %w[pl en]
+			cur_lang = @cookies['lang'] || get_lang_from_headers
+			cur_lang = (langs.include?(cur_lang) ? cur_lang : 'en')
+			
+			@cookies['lang'] ||= cur_lang
+			@cookies['lang'].to_sym
+		end
+		
+		def loc str, target_lang=nil
+			lang = target_lang || get_lang()
+			if lang==:en
+				str
+			else
+				warn "no #{lang} translation for '#{str}'" if !SCRABBLE_TRANSLATIONS[lang][str]
+				SCRABBLE_TRANSLATIONS[lang][str] || str
+			end
 		end
 	end
 end

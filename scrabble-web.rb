@@ -21,6 +21,7 @@ require 'pg' if $heroku
 Camping.goes :ScrabbleWeb
 
 
+require './scrabble-web/translations.rb'
 require './scrabble-web/helpers.rb'
 require './scrabble-web/controllers.rb'
 require './scrabble-web/views.rb'
