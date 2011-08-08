@@ -31,7 +31,7 @@ module ScrabbleWeb
 				
 				text loc 'Language: '
 				langs.each do |lang|
-					a lang, :href=>R(Lang, lang), :class=>(lang==get_lang ? 'curlang' : '')
+					a lang, :href=>R(Lang, lang), :class=>(lang.to_sym==get_lang ? 'curlang' : '')
 					text ' '
 				end
 			end
