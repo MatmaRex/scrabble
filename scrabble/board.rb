@@ -89,6 +89,7 @@ module Scrabble
 		end
 		
 		def [] a
+			warn "Board#[]: #{caller[0]}"
 			@board[a]
 		end
 		
