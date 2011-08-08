@@ -96,5 +96,15 @@ module ScrabbleWeb
 			loggedinas = game.players.select{|pl| pl.id==playerid and pl.password==password}[0]
 			loggedinas
 		end
+		
+		def get_lang_from_headers
+			# should be pl/en/something similar, if the browser is at all sensible
+			@env['HTTP_ACCEPT_LANGUAGE'].to_s[0, 2]
+		end
+		
+		# This also sets the cookie if it's missing!
+		def get_lang
+			@cookies['lang'] ||= get_lang_from_headers
+		end
 	end
 end

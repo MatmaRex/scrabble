@@ -15,6 +15,13 @@ module ScrabbleWeb
 			end
 		end
 		
+		class Lang < R '/lang!/([a-z-]+)'
+			def get lang
+				@cookies['lang'] = lang
+				redirect '/'
+			end
+		end
+		
 		class NewGame < R '/new!'
 			def post
 				gamename = @request['gamename']

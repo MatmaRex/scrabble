@@ -1,6 +1,8 @@
 *{font-size:14px}
 body, input{font-family:tahoma, arial, verdana, sans-serif}
 
+#langs .curlang{font-weight:bold}
+
 #board{width:540px} /* force full no-line-breaks display on Opera Mini */
 .scrabble21 #board{width:730px}
 
