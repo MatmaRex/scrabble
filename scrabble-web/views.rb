@@ -29,33 +29,33 @@ module ScrabbleWeb
 			p.langs! do
 				langs = %w[pl en]
 				
-				text 'Język: '
+				text loc 'Language: '
 				langs.each do |lang|
 					a lang, :href=>R(Lang, lang), :class=>(lang==get_lang ? 'curlang' : '')
 					text ' '
 				end
 			end
 			
-			p 'Sup.'
+			p loc 'Sup.'
 			
-			p{"Lista gier (admin: #{a 'zarządzaj', href:R(Manage)}):"}
+			p{loc('Games list (admin: %s):') % (a loc('manage'), href:R(Manage)).to_s}
 			ul do
 				@gamelist.each{|game| li{a game, href:"/#{game}"} }
 			end
 			
-			p 'Utwórz nową:'
+			p loc 'Create new:'
 			form.create! method:'post', action:'/new!' do
 				table do
 					tr do
-						td.prompt 'Nazwa gry (dozwolone litery bez polskich znaków, cyfry, _, -): '
+						td.prompt loc 'Game name (allowed letters, numbers, _, -):'
 						td.value{input.gamename!}
 					end
 					tr do
-						td.prompt 'Liczba graczy (1-4): '
+						td.prompt loc 'Player count (1-4):'
 						td.value{input.players!}
 					end
 					tr do
-						td.prompt 'Nicki kolejnych graczy (opcj.): '
+						td.prompt loc 'Player names (optional):'
 						td.value do
 							(0..3).each do |i|
 								input name:"player#{i}"; text ' '
@@ -63,11 +63,11 @@ module ScrabbleWeb
 						end
 					end
 					tr do
-						td.prompt 'Chcę być graczem numer (1-4, domyślnie 1): '
+						td.prompt loc 'I want to be player number (1-4, default 1):'
 						td.value{input.whoisadmin!}
 					end
 					tr do
-						td.prompt 'Typ gry: '
+						td.prompt loc 'Game type:'
 						td.value do
 							label{ input type:'radio', name:'mode', value:'scrabble', checked:'checked'; text ' Scrabble ' }
 							label{ input type:'radio', name:'mode', value:'scrabble21';                  text ' Super Scrabble ' }
@@ -78,7 +78,7 @@ module ScrabbleWeb
 					end
 					tr do
 						td.prompt ''
-						td.value{input type:'submit', value:'Utwórz grę'}
+						td.value{input type:'submit', value:loc('Create game')}
 					end
 				end
 			end
@@ -86,11 +86,11 @@ module ScrabbleWeb
 		
 		def manage
 			if @deleted and !@deleted.empty?
-				p 'Usunięto: '+@deleted.join(', ')
+				p loc('Deleted: ') + @deleted.join(', ')
 			end
 			
 			form method:'post', action:R(Manage) do
-				p{text 'Hasło: '; input.pass! type:'password'}
+				p{text loc 'Password: '; input.pass! type:'password'}
 				
 				ul do
 					@gamelist.each do |gamename|
@@ -102,7 +102,7 @@ module ScrabbleWeb
 					end
 				end
 				
-				input type:'submit', value:'Usuń zaznaczone'
+				input type:'submit', value:loc('Delete selected')
 			end
 		end
 		
@@ -160,16 +160,16 @@ module ScrabbleWeb
 						
 						p.playername pl.name
 						
-						p{b 'Admin gry'} if pl.admin
+						p{b loc 'Game admin'} if pl.admin
 						
-						p "Hasło do dołączenia: #{pl.password}" if @loggedinas and @loggedinas.admin
+						p loc('Join password: ')+pl.password.to_s if @loggedinas and @loggedinas.admin
 						
-						p "Punkty: #{pl.points}"
+						p loc('Points: ')+pl.points.to_s
 						
 						if @loggedinas == pl or @game.over?
-							p "Litery: #{pl.letters.join ' '}"
+							p loc('Your letters: ')+pl.letters.join(' ')
 						else
-							p "Liter: #{pl.letters.length}"
+							p loc('Letters left: ')+pl.letters.length.to_s
 						end
 					end
 				end
@@ -178,12 +178,12 @@ module ScrabbleWeb
 		
 		def _gameinfo
 			if @game.over?
-				p.whoseturn! "Gra zakończona!"
+				p.whoseturn! loc "Game over!"
 			else
-				p.whoseturn! "Teraz: #{@game.players[@game.whoseturn].name}"
+				p.whoseturn! loc("Now: %s") % @game.players[@game.whoseturn].name
 			end
 			
-			p.letterleft! "Zostało: #{@game.board.letter_queue.length} liter"
+			p.letterleft! loc("%s letters left") % @game.board.letter_queue.length
 		end
 		
 		def _history
@@ -199,11 +199,11 @@ module ScrabbleWeb
 						slice.each do |entry|
 							td do
 								if entry.mode == :word
-									"#{entry.score} punktów: #{entry.words.map{|w| w.letters.join ''}.join ', '}"
+									loc('%{pts} points: %{word}') % {pts: entry.score, word: entry.words.map{|w| w.letters.join ''}.join(', ')}
 								elsif entry.mode == :pass
-									"Pas."
+									loc 'Pass.'
 								elsif entry.mode == :change
-									"Wymienił(a) #{entry.changed_count} liter."
+									loc('Exchange %s letters.') % entry.changed_count
 								elsif entry.mode == :adj
 									"#{entry.score>0 ? '+' : '-'}#{entry.score.abs}"
 								end
@@ -220,7 +220,7 @@ module ScrabbleWeb
 			if @loggedinas and !@game.over?
 				if @game.board.board.flatten.include? '?'
 					form.getblank! method:'post', action:R(GetBlank, @gamename) do
-						text 'Podmień blanka - podaj jego pozycję: (np. B12) '
+						text loc 'Swap a blank - provide its position: (for ex. B12) '
 						input.loc!
 						input type:'submit'
 					end
@@ -242,7 +242,7 @@ module ScrabbleWeb
 				
 				if @loggedinas
 					div.rack! do
-						text 'Stojak: '
+						text loc 'Rack: '
 						div.rackdropzone! do
 							@loggedinas.letters.each_with_index do |let, i|
 								input.rackletter id:"letter#{i}", readonly:'readonly', value:let
@@ -257,10 +257,10 @@ module ScrabbleWeb
 					div.controls! do
 						if @loggedinas.letters.include? '?'
 							br
-							text 'Jeśli używasz blanka, wpisz tu, jaką literą chcesz go zastąpić: '
+							text loc "If you're using a blank, which letter is it representing? "
 							input.blank_replac!
 							if @loggedinas.letters.count('?') > 1
-								text ' (jeśli używasz więcej niż jednego, wpisz dwie litery; najpierw podaj literę dla tego blanka, który jest bliżej lewej strony lub góry planszy)'
+								text loc ' (if using more than one at once, type in all the letters in order the blanks appear, the topmost, leftmost ones first)'
 							end
 						end
 						
@@ -287,21 +287,21 @@ module ScrabbleWeb
 				hsh = @game.board.letters_to_points
 				order = hsh.keys.sort_by_pl
 				
-				b 'Legenda: '
+				b loc 'Legend: '
 				text order.map{|let| "#{let}=#{hsh[let]}"}.join ', '
 			end
 			p.legend2! do
 				hsh = @game.board.letter_freq
 				order = hsh.keys.sort_by_pl
 				
-				b 'Liczba płytek: '
+				b loc 'Tile count: '
 				text order.map{|let| "#{let}x#{hsh[let]}"}.join ', '
 			end
 			
 			if !@loggedinas and !@game.over?
 				form.joingame! method:'post', action:R(JoinGame) do
 					input.game! type:'hidden', value:@gamename
-					text 'Dołącz go gry - hasło: '; input.password!
+					text loc 'Join this game - password: '; input.password!
 					input type:'submit'
 				end
 			end
