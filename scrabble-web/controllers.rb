@@ -386,7 +386,8 @@ module ScrabbleWeb
 					end
 				end
 				
-				put_game gamename+'-re', @newgame
+				newname = (@request['force']=='yes' ? gamename : gamename+'-re')
+				put_game newname, @newgame
 				
 				out.join '<br>'
 			end
