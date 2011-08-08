@@ -50,6 +50,8 @@ SCRABBLE_TRANSLATIONS = {
 		'I want to be player number (1-4, default 1):' => 'Chcę być graczem numer (1-4, domyślnie 1):',
 		'Game type:' => 'Typ gry:',
 		'Create game' => 'Utwórz grę', # button
+		'In Polish: ' => 'Po polsku: ',
+		'In English: ' => 'Po angielsku: ',
 		
 		# manage
 		'Deleted: ' => 'Usunięto: ',

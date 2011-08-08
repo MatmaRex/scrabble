@@ -69,11 +69,14 @@ module ScrabbleWeb
 					tr do
 						td.prompt loc 'Game type:'
 						td.value do
+							text loc 'In Polish: '
 							label{ input type:'radio', name:'mode', value:'scrabble', checked:'checked'; text ' Scrabble ' }
 							label{ input type:'radio', name:'mode', value:'scrabble21';                  text ' Super Scrabble ' }
 							label{ input type:'radio', name:'mode', value:'literaki';                    text ' Literaki ' }
-							label{ input type:'radio', name:'mode', value:'scrabbleen'  ;                text ' Scrabble (English)' }
-							label{ input type:'radio', name:'mode', value:'scrabble21en';                text ' Super Scrabble (English) ' }
+							br
+							text loc 'In English: '
+							label{ input type:'radio', name:'mode', value:'scrabbleen'  ;                text ' Scrabble' }
+							label{ input type:'radio', name:'mode', value:'scrabble21en';                text ' Super Scrabble ' }
 						end
 					end
 					tr do
