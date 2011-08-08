@@ -128,7 +128,7 @@ module Scrabble
 			# 0. sanity check - letters in the board range, single letters
 			
 			unless letters.all?{|col, row, letter| (0..max_width).include? col and (0..max_height).include? row and letters_to_points.keys.include? letter}
-				raise WordError, '0. sanity check - malformed request?'
+				raise WordError, '#000 sanity check - malformed request?'
 			end
 			
 			
@@ -142,7 +142,7 @@ module Scrabble
 			elsif (a=rows.uniq).length==1
 				horiz=true; row=a[0]
 			else
-				raise WordError, '1. not all letters are on single line'
+				raise WordError, '#010 not all letters are on single line'
 			end
 			
 			
@@ -151,7 +151,7 @@ module Scrabble
 				if @board[row][col].nil?
 					@board[row][col] = letter
 				else
-					raise WordError, '2. sanity check - malformed request?'
+					raise WordError, '#020 sanity check - malformed request?'
 				end
 			end
 			
@@ -161,7 +161,7 @@ module Scrabble
 			# thus max_* is guaranteed to be even (indexing starts at 0),
 			# and max_*/2 is guaranteed not to act funny.
 			unless @board[max_height/2][max_width/2]
-				raise WordError, '2.5. first word must pass through the middle field'
+				raise WordError, '#025 first word must pass through the middle field'
 			end
 			
 			
@@ -191,7 +191,7 @@ module Scrabble
 			
 			
 			if checks.flatten.uniq.length != 2 # only false and a single id allowed
-				raise WordError, '2.5. all words must be connected'
+				raise WordError, '#025 all words must be connected'
 			end
 			
 			
@@ -201,20 +201,20 @@ module Scrabble
 			if horiz
 				min, max = cols.minmax
 				if @board[row][min..max].include? nil
-					raise WordError, '3. all letters must form a single word'
+					raise WordError, '#030 all letters must form a single word'
 				else
 					major_word = find_word_around min, row, :horiz
 				end
 			elsif verti
 				min, max = rows.minmax
 				if @board.transpose[col][min..max].include? nil
-					raise WordError, '3. all letters must form a single word'
+					raise WordError, '#030 all letters must form a single word'
 				else
 					major_word = find_word_around col, min, :verti
 				end
 			end
 			
-			raise WordError, '3. no word found' if !major_word
+			raise WordError, '#030 no word found' if !major_word
 			
 			
 			# 4. gather up all newly created words
@@ -226,7 +226,7 @@ module Scrabble
 			words = words.select{|word| word.length>1} # discard one-letter "words" (major_word can be one-letter, too)
 			
 			if words.empty? # the only word was one-letter long - can occur at beginning of game
-				raise WordError, "4. one-letter words not allowed / you didn't really create a word"
+				raise WordError, '#040 one-letter words not allowed'
 			end
 			
 			
@@ -234,7 +234,7 @@ module Scrabble
 			# as late as here, since wrong placement errors are much more common
 			lets = letters.map{|a| a[2]}
 			unless force or lets.uniq.all?{|let| rack.count(let) >= lets.count(let)}
-				raise WordError, '4.5. you can only use letters from your rack'
+				raise WordError, '#045 you can only use letters from your rack'
 			end
 			
 			
@@ -259,7 +259,7 @@ module Scrabble
 					key = [row, col]
 					# if this blank wasn't parsed yet
 					if !@blank_replac[key]
-						raise WordError, '5. no blank replacement given' if blank_replac.empty?
+						raise WordError, '#050 no blank replacement given' if blank_replac.empty?
 						@blank_replac[key] = blank_replac.shift
 					end
 					
@@ -275,7 +275,7 @@ module Scrabble
 			words.each do |w|
 				w = w.letters.join('')
 				unless force or method(@dict_check).call w
-					raise WordError, '6. incorrect word: '+ w
+					raise WordError, '#060 incorrect word: '+ w
 				end
 			end
 			

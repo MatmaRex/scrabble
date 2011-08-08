@@ -187,7 +187,19 @@ module ScrabbleWeb
 					begin
 						@game.do_move letts, blank_replac, @loggedinas.id
 					rescue Scrabble::WordError => e
-						return loc('Incorrect move.') + '<br>' + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
+						if e.message =~ /^#060/
+							message = e.message.sub(/\A(#060 [^:]+: )(.+)\z/){loc($1) + $2}
+						else
+							message = loc(e.message)
+						end
+						
+						resp = [
+							loc('Incorrect move.'),
+							message.encode('utf-8'),
+							get(@gamename).to_s.encode('utf-8')
+						]
+						
+						return resp.join '<br />'
 					end
 				
 				elsif @request['mode'] == loc('Pass/Exchange')

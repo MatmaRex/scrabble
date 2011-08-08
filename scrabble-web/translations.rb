@@ -25,6 +25,19 @@ SCRABBLE_TRANSLATIONS = {
 		'You did nothing?' => 'Nic nie ułożyłeś?',
 		'Incorrect move.' => 'Nieprawidłowy ruch.',
 		
+		# messages of errors raised by Scrabble::Board#place_word
+		'#000 sanity check - malformed request?' => '#000 test rozsądku - nieprawidłowe zapytanie?',
+		'#010 not all letters are on single line' => '#010 nie wszystkie litery znajdują się na jednej linii',
+		'#020 sanity check - malformed request?' => '#020 test rozsądku - nieprawidłowe zapytanie?',
+		'#025 first word must pass through the middle field' => '#025 pierwsze słowo musi przechodzić przez środkowe pole',
+		'#025 all words must be connected' => '#025 wszystkie słowa muszą być połączone',
+		'#030 all letters must form a single word' => '#030 wszystkie litery muszą tworzyć jedno słowo',
+		'#030 no word found' => '#030 nie znaleziono nowych słów',
+		'#040 one-letter words not allowed' => '#040 jednoliterowe słowa są niedozwolone',
+		'#045 you can only use letters from your rack' => '#045 możesz używać tylko liter ze stojaka',
+		'#050 no blank replacement given' => '#050 nie podano litery, którą zastępuje blank',
+		'#060 word not in dictionary: ' => '#060 słowa nie ma w słowniku: ',
+		
 		
 		# home
 		'Language: ' => 'Język: ',
@@ -75,15 +88,6 @@ SCRABBLE_TRANSLATIONS = {
 		'OK' => 'OK',
 		'Pass/Exchange' => 'Pas/Wymiana',
 		'Redo' => 'Od nowa',
-		'' => '',
-		'' => '',
-		'' => '',
-		'' => '',
-		'' => '',
-		'' => '',
-		'' => '',
-		'' => '',
-		'' => '',
 	},
 	
 	
