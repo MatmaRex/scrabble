@@ -448,8 +448,6 @@ module ScrabbleWeb
 				out = []
 				
 				@game.history.each_with_index do |entry, move_no|
-					p entry
-					
 					if entry.mode == :word
 						letts = []
 						entry.words.each do |word|
