@@ -70,9 +70,11 @@ SCRABBLE_TRANSLATIONS = {
 		'Legend: ' => 'Legenda: ',
 		'Tile count: ' => 'Liczba płytek: ',
 		'Join this game - password: ' => 'Dołącz go gry - hasło: ',
-		'' => '',
-		'' => '',
-		'' => '',
+		
+		# game - these are also used server-side
+		'OK' => 'OK',
+		'Pass/Exchange' => 'Pas/Wymiana',
+		'Redo' => 'Od nowa',
 		'' => '',
 		'' => '',
 		'' => '',

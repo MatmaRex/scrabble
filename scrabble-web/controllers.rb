@@ -167,7 +167,7 @@ module ScrabbleWeb
 				return loc 'Game already over.' if @game.over?
 				
 				
-				if @request['mode'] == 'OK'
+				if @request['mode'] == loc('OK')
 					letts = []
 					
 					@request.params.each_pair do |id, lett|
@@ -190,7 +190,7 @@ module ScrabbleWeb
 						return loc('Incorrect move.') + '<br>' + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
 					end
 				
-				elsif @request['mode'] == 'Pas/Wymiana'
+				elsif @request['mode'] == loc('Pass/Exchange')
 					ch = (@request['change']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
 					
 					@game.do_pass_or_change ch, @loggedinas.id

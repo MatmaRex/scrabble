@@ -265,14 +265,14 @@ module ScrabbleWeb
 						end
 						
 						br
-						input name:'mode', type:'submit', value:'OK'
+						input name:'mode', type:'submit', value:loc('OK')
 						text ' '
-						input type:'reset', value:'Od nowa'
+						input type:'reset', value:loc('Redo')
 						
 						br
 						input.change!
 						text ' '
-						input name:'mode', type:'submit', value:'Pas/Wymiana' 
+						input name:'mode', type:'submit', value:loc('Pass/Exchange' )
 					end
 				end
 			end
