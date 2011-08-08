@@ -122,10 +122,13 @@ module Scrabble
 			
 			letters.map{|arr| arr[2] = arr[2].upcase_pl}
 			
+			max_height = @board.length-1
+			max_width  = @board[0].length-1
 			
 			# 0. sanity check - letters in the board range, single letters
-			unless letters.all?{|col, row, letter| (0..14).include? col and (0..14).include? row and letter.length==1 and letters_to_points.keys.include? letter}
-				raise WordError, '0. sanity check - malformed request? (use uppercase letters)'
+			
+			unless letters.all?{|col, row, letter| (0..max_width).include? col and (0..max_height).include? row and letters_to_points.keys.include? letter}
+				raise WordError, '0. sanity check - malformed request?'
 			end
 			
 			
@@ -154,20 +157,18 @@ module Scrabble
 			
 			
 			# 2.5. check if there is a letter in the middle - required for the first move
-			# both dimensions should be odd numbers
-			# we get *indices* of "half a board, round up"
-			middle_height = (@board.length-1)/2
-			middle_width  = (@board[0].length-1)/2
-			
-			unless @board[middle_height][middle_width]
+			# both dimensions should be odd numbers,
+			# thus max_* is guaranteed to be even (indexing starts at 0),
+			# and max_*/2 is guaranteed not to act funny.
+			unless @board[max_height/2][max_width/2]
 				raise WordError, '2.5. first word must pass through the middle field'
 			end
 			
 			
 			# 2.5 check if all words are connected
-			checks = Array.new(15){ Array.new(15){false} }
-			(0..14).each do |row|
-				(0..14).each do |col|
+			checks = Array.new(max_height+1){ Array.new(max_width+1){false} }
+			(0..max_height).each do |row|
+				(0..max_width).each do |col|
 					if @board[row][col]
 						id = "#{row}/#{col}"
 						stack = []
@@ -177,10 +178,10 @@ module Scrabble
 							crow, ccol = *stack.shift
 							checks[crow][ccol] = id
 							
-							stack << [crow-1, ccol  ] unless crow==0  or !@board[crow-1][ccol  ] or checks[crow-1][ccol  ]
-							stack << [crow+1, ccol  ] unless crow==14 or !@board[crow+1][ccol  ] or checks[crow+1][ccol  ]
-							stack << [crow  , ccol-1] unless ccol==0  or !@board[crow  ][ccol-1] or checks[crow  ][ccol-1]
-							stack << [crow  , ccol+1] unless ccol==14 or !@board[crow  ][ccol+1] or checks[crow  ][ccol+1]
+							stack << [crow-1, ccol  ] unless crow==0          or !@board[crow-1][ccol  ] or checks[crow-1][ccol  ]
+							stack << [crow+1, ccol  ] unless crow==max_height or !@board[crow+1][ccol  ] or checks[crow+1][ccol  ]
+							stack << [crow  , ccol-1] unless ccol==0          or !@board[crow  ][ccol-1] or checks[crow  ][ccol-1]
+							stack << [crow  , ccol+1] unless ccol==max_width  or !@board[crow  ][ccol+1] or checks[crow  ][ccol+1]
 						end
 					end
 					
