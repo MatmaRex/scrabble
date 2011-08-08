@@ -30,8 +30,8 @@ module ScrabbleWeb
 				whoisadmin = ((@request['whoisadmin']!='' ? @request['whoisadmin'] : 1).to_i - 1)
 				mode = (@request['mode'] && @request['mode']!='' ? @request['mode'].to_sym : :scrabble)
 				
-				return 'Players?' unless (1..4).include? playercount
-				return 'Admin?' unless (0...playercount).include? whoisadmin
+				return loc 'Players number incorrect.' unless (1..4).include? playercount
+				return loc 'Chosen player number incorrect.' unless (0...playercount).include? whoisadmin
 				
 				if gamename =~ /\A[a-zA-Z0-9_-]+\Z/
 					if !game_exist? gamename
@@ -43,10 +43,10 @@ module ScrabbleWeb
 						
 						redirect "/#{@request['gamename']}"
 					else
-						return "Game '#{gamename}' already exists."
+						return loc("Game '%s' already exists.") % gamename
 					end
 				else
-					return 'Only ASCII letters, numbers, underscore and hyphen (a-z, A-Z, 0-9, _, -) allowed in game names.'
+					return loc 'Only ASCII letters, numbers, underscore and hyphen (a-z, A-Z, 0-9, _, -) allowed in game names.'
 				end
 			rescue
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
@@ -102,18 +102,18 @@ module ScrabbleWeb
 				@loggedinas = get_logged_in_player gamename, @game
 				
 				
-				return 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
-				return 'Game already over.' if @game.over?
+				return loc 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
+				return loc 'Game already over.' if @game.over?
 				
 				
 				row, col = @request['loc'].match(/\A([a-z]+)([0-9]+)\z/i){ [([*'a'..'z'].index $1.downcase), ($2.to_i - 1)] }
-				return 'Wrong input format?' if !row or !col
+				return loc 'Wrong input format?' if !row or !col
 				
-				return 'Not a blank here.' if @game.board.board[row][col] != '?'
+				return loc 'Not a blank here.' if @game.board.board[row][col] != '?'
 				replace_with = @game.board.blank_replac[ [row, col] ].upcase_pl
 				
 				at = @loggedinas.letters.index replace_with
-				return "You don't have this letter." unless at
+				return loc "You don't have this letter." unless at
 				
 				# all is fine - do the job.
 				@game.board.board[row][col] = replace_with
@@ -129,7 +129,7 @@ module ScrabbleWeb
 		class Game < R '/([a-zA-Z0-9_-]+)'
 			def common
 				if !game_exist? @gamename
-					return 'No such game.'
+					return loc 'No such game.'
 				else
 					@game = get_game @gamename
 				end
@@ -163,8 +163,8 @@ module ScrabbleWeb
 				err = common()
 				return err if err
 				
-				return 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
-				return 'Game already over.' if @game.over?
+				return loc 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
+				return loc 'Game already over.' if @game.over?
 				
 				
 				if @request['mode'] == 'OK'
@@ -182,12 +182,12 @@ module ScrabbleWeb
 					
 					blank_replac = (@request['blank_replac']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
 					
-					return 'You did nothing?' if letts.empty?
+					return loc 'You did nothing?' if letts.empty?
 					
 					begin
 						@game.do_move letts, blank_replac, @loggedinas.id
 					rescue Scrabble::WordError => e
-						return 'Incorrect move.' + '<br>' + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
+						return loc('Incorrect move.') + '<br>' + e.message.encode('utf-8') + get(@gamename).to_s.encode('utf-8')
 					end
 				
 				elsif @request['mode'] == 'Pas/Wymiana'
@@ -285,7 +285,7 @@ module ScrabbleWeb
 				@gamename, @password = @request['game'], @request['password']
 				
 				if !game_exist? @gamename
-					return 'No such game.'
+					return loc 'No such game.'
 				else
 					@game = get_game @gamename
 				end
@@ -297,7 +297,7 @@ module ScrabbleWeb
 					@cookies["game-#{@gamename}-password"] = @password
 					redirect "/#{@gamename}"
 				else
-					return 'Wrong password.'
+					return loc 'Wrong password.'
 				end
 			rescue
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
@@ -311,7 +311,7 @@ module ScrabbleWeb
 			end
 			
 			def post
-				return 'Wrong pass.' if @request['pass']!='magicznehaslo'
+				return loc 'Wrong password.' if @request['pass']!='magicznehaslo'
 				
 				@deleted = []
 				
