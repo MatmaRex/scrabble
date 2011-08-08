@@ -94,12 +94,15 @@ module Scrabble
 		end
 		
 		def find_word_around col, row, direction # :horiz/:verti
+			max_height = @board.length-1
+			max_width  = @board[0].length-1
+			
 			if direction == :horiz
 				board = @board
 				start = col
 				start -= 1 until start==0 or board[row][start-1].nil?
 				finish = col
-				finish += 1 until finish==14 or board[row][finish+1].nil?
+				finish += 1 until finish==max_width or board[row][finish+1].nil?
 				
 				major_word = Word.new start, row, :horiz, board[row][start..finish], self
 			else
@@ -107,7 +110,7 @@ module Scrabble
 				start = row
 				start -= 1 until start==0 or board[col][start-1].nil?
 				finish = row
-				finish += 1 until finish==14 or board[col][finish+1].nil?
+				finish += 1 until finish==max_height or board[col][finish+1].nil?
 				
 				major_word = Word.new col, start, :verti, board[col][start..finish], self
 			end
