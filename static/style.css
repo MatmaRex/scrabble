@@ -6,7 +6,7 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board{width:540px} /* force full no-line-breaks display on Opera Mini */
 .scrabble21 #board{width:730px}
 
-#board input, .rackletter{border:3px double grey; text-align:center; color:black}
+#board input, .rackletter{border:3px double grey; text-align:center; color:black; font-weight:bold}
 #board input.enab{text-transform:uppercase}
 #board input.disab{text-transform:none}
 
