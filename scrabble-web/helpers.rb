@@ -91,25 +91,45 @@ end
 
 module ScrabbleWeb
 	module Helpers
+		def cookie_expiration_time
+			60 * 60 * 24 * 365 # 1 year
+		end
+		
 		def get_logged_in_player gamename, game
-			playerid, password = @cookies["game-#{gamename}-playerid"].to_i, @cookies["game-#{gamename}-password"]
-			loggedinas = game.players.select{|pl| pl.id==playerid and pl.password==password}[0]
+			playerid, password = @cookies["game-#{gamename}-playerid"], @cookies["game-#{gamename}-password"]
+			playerid = playerid[:value] if playerid.is_a? Hash
+			password = password[:value] if password.is_a? Hash
+			
+			loggedinas = game.players.select{|pl| pl.id==playerid.to_i and pl.password==password}[0]
 			loggedinas
 		end
 		
+		# Should be pl/en/something similar, if the browser is at all sensible. Returns string.
 		def get_lang_from_headers
-			# should be pl/en/something similar, if the browser is at all sensible
 			@env['HTTP_ACCEPT_LANGUAGE'].to_s[0, 2]
 		end
 		
-		# This also sets the cookie if it's missing!
+		# This also sets the cookie if it's missing! Returns a symbol.
 		def get_lang
-			langs = %w[pl en]
-			cur_lang = @cookies['lang'] || get_lang_from_headers
-			cur_lang = (langs.include?(cur_lang) ? cur_lang : 'en')
+			if @cookies['lang']
+				# we have a cookie - do not set it at all, just read
+				if @cookies['lang'].is_a?(Hash)
+					cur_lang = @cookies['lang'][:value].to_sym
+				else
+					cur_lang = @cookies['lang'].to_sym
+				end
+			else
+				# no cookie - set it, don't validate yet
+				cur_lang = get_lang_from_headers
+				@cookies['lang'] = {value: cur_lang, expires:(Time.now+cookie_expiration_time)}
+				cur_lang = cur_lang.to_sym
+			end
 			
-			@cookies['lang'] ||= cur_lang
-			@cookies['lang'].to_sym
+			# validate the language
+			langs = %w[pl en].map(&:to_sym)
+			cur_lang = (langs.include?(cur_lang) ? cur_lang : :en)
+			
+			return cur_lang
 		end
 		
 		def loc str, target_lang=nil

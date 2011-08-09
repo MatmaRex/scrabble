@@ -17,7 +17,7 @@ module ScrabbleWeb
 		
 		class Lang < R '/lang!/([a-z-]+)'
 			def get lang
-				@cookies['lang'] = lang
+				@cookies['lang'] = {value: lang, expires:(Time.now+cookie_expiration_time)}
 				redirect '/'
 			end
 		end
@@ -36,8 +36,8 @@ module ScrabbleWeb
 				if gamename =~ /\A[a-zA-Z0-9_-]+\Z/
 					if !game_exist? gamename
 						game = Scrabble::Game.new playercount, playernames, whoisadmin, mode
-						@cookies["game-#{gamename}-playerid"] = whoisadmin
-						@cookies["game-#{gamename}-password"] = game.players[whoisadmin].password
+						@cookies["game-#{gamename}-playerid"] = {value: whoisadmin, expires:(Time.now+cookie_expiration_time)}
+						@cookies["game-#{gamename}-password"] = {value: game.players[whoisadmin].password, expires:(Time.now+cookie_expiration_time)}
 						
 						put_game gamename, game
 						
@@ -305,8 +305,8 @@ module ScrabbleWeb
 				as = @game.players.select{|pl| pl.password==@password}[0]
 				
 				if as
-					@cookies["game-#{@gamename}-playerid"] = @game.players.index as
-					@cookies["game-#{@gamename}-password"] = @password
+					@cookies["game-#{@gamename}-playerid"] = {value: @game.players.index(as), expires:(Time.now+cookie_expiration_time)}
+					@cookies["game-#{@gamename}-password"] = {value: @password, expires:(Time.now+cookie_expiration_time)}
 					redirect "/#{@gamename}"
 				else
 					return loc 'Wrong password.'
