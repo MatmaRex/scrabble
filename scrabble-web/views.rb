@@ -109,6 +109,13 @@ module ScrabbleWeb
 			end
 		end
 		
+		def rawdataask
+			form method:'post', action:R(RawData, @gamename) do
+				p{text loc 'Password: '; input.pass! type:'password'}
+				input type:'submit', value:loc('Get raw data')
+			end
+		end
+		
 		def _board
 			board = @game.board.board
 			

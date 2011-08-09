@@ -53,10 +53,11 @@ SCRABBLE_TRANSLATIONS = {
 		'In Polish: ' => 'Po polsku: ',
 		'In English: ' => 'Po angielsku: ',
 		
-		# manage
+		# manage, rawdataask
 		'Deleted: ' => 'Usunięto: ',
 		'Password: ' => 'Hasło: ',
 		'Delete selected' => 'Usuń zaznaczone',
+		'Get raw data' => 'Pobierz dane',
 		
 		# _players
 		'Game admin' => 'Admin gry',

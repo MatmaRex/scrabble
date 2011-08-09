@@ -217,7 +217,7 @@ module ScrabbleWeb
 			end
 		end
 		
-		class Kurnik < R '/raw!/([a-zA-Z0-9_-]+)'
+		class Kurnik < R '/txt!/([a-zA-Z0-9_-]+)'
 			def get gamename
 				@game = get_game gamename
 				lines = []
@@ -340,6 +340,21 @@ module ScrabbleWeb
 				
 				@gamelist = get_list_of_games
 				render :manage
+			end
+		end
+		
+		class RawData < R '/raw!/([a-zA-Z0-9_-]+)'
+			def get gamename
+				@gamename = gamename
+				render :rawdataask
+			end
+			def post gamename
+				if @request['pass']=='magicznehaslo'
+					@headers['content-type']='application/octet-stream'
+					Marshal.dump get_game gamename
+				else
+					loc 'Wrong password.'
+				end
 			end
 		end
 		
