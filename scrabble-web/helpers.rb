@@ -30,7 +30,7 @@ def get_list_of_games
 		list = Dir.entries('games').select{|a| a!='.' and a!='..'}.map{|a| a.sub(/-game\Z/, '')}
 	end
 	
-	list
+	list.sort
 end
 
 
