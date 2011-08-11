@@ -15,6 +15,13 @@ function scrabble_callback(hsh)
 				el.className = el.className.replace('enab', 'disab') + ' hilit'
 				el.readonly = true
 				el.value = hsh[i]
+				
+				// work around a nasty Opera bug where text-transform sticks on inputs
+				if(window.opera)
+				{
+					if(el.nextSibling) el.parentNode.insertBefore(el, el.nextSibling)
+					else el.parentNode.appendChild(el)
+				}
 			}
 		}
 	}
