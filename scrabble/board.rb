@@ -93,14 +93,14 @@ module Scrabble
 			@board = Array.new(height){Array.new width}
 			@multis_used = Array.new(height){Array.new(width){false} }
 			
-			@letter_queue = @letter_freq.to_a.map{|let, n| [let]*n }.flatten.shuffle
+			@letter_queue = @letter_freq.to_a.map{|let, count| [let]*count }.flatten.shuffle
 			
 			@blank_replac = {} # {[row, col] => 'X', ...}
 		end
 		
-		def [] a
+		def [] row
 			warn "Board#[]: #{caller[0]}"
-			@board[a]
+			@board[row]
 		end
 		
 		def find_word_around col, row, direction # :horiz/:verti
@@ -261,15 +261,9 @@ module Scrabble
 				w.letters.each_with_index do |let, ind|
 					next if let!='?'
 					
-					if w.direction==:verti
-						col = w.col
-						row = w.row + ind
-					else
-						col = w.col + ind
-						row = w.row
-					end
-					
+					row, col = *w.letter_position(ind)
 					key = [row, col]
+					
 					# if this blank wasn't parsed yet
 					if !@blank_replac[key]
 						raise WordError, '#050 no blank replacement given' if blank_replac.empty?
@@ -280,7 +274,6 @@ module Scrabble
 					# lowercase indicates this is a blank
 					w.letters[ind] = @blank_replac[key].downcase_pl
 				end
-				
 			end
 			
 			
