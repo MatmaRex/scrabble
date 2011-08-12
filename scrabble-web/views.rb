@@ -267,8 +267,10 @@ module ScrabbleWeb
 					div.rack! do
 						text loc 'Rack: '
 						div.rackdropzone! do
-							@loggedinas.letters.each_with_index do |let, i|
-								input.rackletter id:"letter#{i}", readonly:'readonly', value:let
+							unless @loggedinas.letters.empty?
+								@loggedinas.letters.each_with_index do |let, i|
+									input.rackletter id:"letter#{i}", readonly:'readonly', value:let
+								end
 							end
 						end
 					end
@@ -314,8 +316,10 @@ module ScrabbleWeb
 			end
 			
 			div.chat! do
-				(@game.chat||[]).reverse_each do |ch|
-					_chatline ch
+				unless (@game.chat||[]).empty?
+					(@game.chat||[]).reverse_each do |ch|
+						_chatline ch
+					end
 				end
 			end
 			
