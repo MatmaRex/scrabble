@@ -37,13 +37,39 @@ function scrabble_callback(hsh)
 	}
 }
 
+function chat_callback(messages, len)
+{
+	chat_len = len
+	
+	chat = document.getElementById('chat')
+	chat.innerHTML = messages + chat.innerHTML
+}
+
 function scrabble_check()
 {
 	s = document.createElement('script')
 	s.type = 'text/javascript'
-	s.src = '/micro!/'+gamename+'?hist_len='+hist_len+'&re='+Math.random()
+	s.src = '/micro!/'+gamename+'?hist_len='+hist_len+'&chat_len='+chat_len+'&re='+Math.random()
 	document.getElementsByTagName('head')[0].appendChild(s)
 }
+
+
+function chat_post()
+{
+	msg = document.getElementById('msg').value
+	
+	s = document.createElement('script')
+	s.type = 'text/javascript'
+	s.src = '/chat!/'+gamename+'?js=yes&msg='+encodeURIComponent(msg)+'&re='+Math.random()
+	document.getElementsByTagName('head')[0].appendChild(s)
+}
+
+function chat_posted()
+{
+	document.getElementById('msg').value = ''
+	scrabble_check()
+}
+
 
 
 function arrow_listener(e, _forced_target)

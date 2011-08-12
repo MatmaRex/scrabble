@@ -238,6 +238,19 @@ module ScrabbleWeb
 			end
 		end
 		
+		def _chatline ch
+			div.chatline do
+				day, hour = ch[:at].strftime("%Y-%m-%d"), ch[:at].strftime("%H:%M:%S")
+				today = Time.now.strftime("%Y-%m-%d")
+				
+				span.time "[#{day==today ? hour : day+' '+hour}]"
+				text ' '
+				span.who @game.players[ ch[:playerid] ].name
+				text ': '
+				span.msg ch[:msg]
+			end
+		end
+		
 		def _updateable
 			_getblank
 			_gameinfo
@@ -293,6 +306,19 @@ module ScrabbleWeb
 				_updateable
 			end
 			
+			if @loggedinas
+				form.chatform! method:'get', action:R(ChatPost, @gamename), onsubmit:'chat_post(); return false' do
+					input.msg!
+					input type:'submit', value:loc('Say')
+				end
+			end
+			
+			div.chat! do
+				(@game.chat||[]).reverse_each do |ch|
+					_chatline ch
+				end
+			end
+			
 			p.legend! do
 				hsh = @game.board.letters_to_points
 				order = hsh.keys.sort_by_pl
@@ -319,6 +345,7 @@ module ScrabbleWeb
 			js = [
 				"gamename = '#{@gamename}'",
 				"hist_len = #{@game.history.length}",
+				"chat_len = #{@game.chat ? @game.chat.length : 0}",
 				"document.body.addEventListener('keypress', arrow_listener, true)",
 				!@game.over? ? "setInterval(scrabble_check, #{$production ? 3000 : 15000})" : ''
 			]

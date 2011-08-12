@@ -41,7 +41,7 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #rackdropzone{height:30px}
 .rackletter{display:block; float:left; cursor:e-resize}
 
-#rack, #controls, #getblank{margin:0; margin-left:1em}
+#rack, #controls, #getblank, #chatform, #chat{margin:0; margin-left:1em}
 
 #updateable{clear:both}
 
@@ -58,6 +58,10 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 .player{border-color:navy; background:#ddf}
 .you{border-color:maroon; background:#fdd}
 .winner{border-color:oldgold; background:#ffd}
+
+
+#chatform{margin-top:1em}
+.chatline .who{font-weight:bold}
 
 
 #create .prompt{text-align:right}

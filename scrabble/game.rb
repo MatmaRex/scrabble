@@ -27,10 +27,8 @@ module Scrabble
 	end
 	
 	class Game
-		attr_accessor :board, :players, :whoseturn
-		attr_accessor :history
-		attr_accessor :consec_passes
-		attr_accessor :finished
+		attr_accessor :board, :players, :whoseturn, :consec_passes
+		attr_accessor :history, :finished, :chat
 		
 		def initialize playercount, playernames, whoisadmin, mode
 			defs = case mode
@@ -162,6 +160,21 @@ module Scrabble
 			else
 				return false
 			end
+		end
+		
+		def do_chat msg, playerid
+			@chat ||= []
+			
+			msg = msg.strip
+			return if msg==''
+			
+			# prevent repeated messages
+			this_guy_said = @chat.select{|ch| ch[:playerid]==playerid}
+			unless this_guy_said.empty?
+				return if this_guy_said[-1][:msg] == msg
+			end
+			
+			@chat << {playerid: playerid, at: Time.now, msg: msg}
 		end
 		
 		def max_points

@@ -68,13 +68,14 @@ module ScrabbleWeb
 					put_game @gamename, @game if res
 				end
 				
+				@loggedinas = get_logged_in_player @gamename, @game
+				
+				out = []
+				
 				@asker_hist_len = @request['hist_len'].to_i
 				if @asker_hist_len == @game.history.length
 					# nothing to update
-					return ''
 				else
-					@loggedinas = get_logged_in_player @gamename, @game
-					
 					board = @game.board.board
 					hsh = {}
 					hsh['updateable'] = render(:_updateable).to_s
@@ -90,9 +91,24 @@ module ScrabbleWeb
 						end
 					end
 					
-					@headers['content-type']='text/javascript'
-					return "scrabble_callback(#{hsh.to_json})"
+					out << "scrabble_callback(#{hsh.to_json})"
 				end
+				
+				@asker_chat_len = @request['chat_len'].to_i
+				if @asker_chat_len == @game.chat.length
+					# nothing to update
+				else
+					chat = @game.chat[(@asker_chat_len)..-1]
+					chat = chat.map{|ch| render(:_chatline, ch, {})}
+					
+					out << "chat_callback(#{chat.reverse.join('').to_json}, #{@game.chat.length})"
+				end
+				
+				
+				@headers['content-type']='text/javascript'
+				return out.join ';'
+			rescue
+				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
 			end
 		end
 		
@@ -123,6 +139,25 @@ module ScrabbleWeb
 				put_game gamename, @game
 				
 				redirect "/#{gamename}"
+			end
+		end
+		
+		class ChatPost < R '/chat!/([a-zA-Z0-9_-]+)'
+			def get gamename
+				@game = get_game gamename
+				@loggedinas = get_logged_in_player gamename, @game
+				@msg = @request['msg']
+				
+				@game.do_chat @msg, @loggedinas.id # this does some checking
+				
+				put_game gamename, @game
+				
+				if @request['js']=='yes'
+					@headers['content-type']='text/javascript'
+					return "chat_posted(#{@game.chat.length})"
+				else
+					redirect "/#{gamename}"
+				end
 			end
 		end
 		
