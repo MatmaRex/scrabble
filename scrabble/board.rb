@@ -14,47 +14,57 @@ module Scrabble
 		end
 		alias inspect to_s
 		
+		# Returns [row, col] pair representing position of nth letter of this word.
+		def letter_position n
+			if @direction == :verti
+				row = @row + n
+				col = @col
+			else
+				row = @row
+				col = @col + n
+			end
+			
+			return [row, col]
+		end
+		
 		def score
-			letter_scores = letters.map.with_index do |letter, ind|
-				if @direction == :verti
-					row = @row + ind
-					col = @col
-				else
-					row = @row
-					col = @col + ind
-				end
-					
-				type = @board.boardtpl[row][col]
-				multi = case type
-				when :dl; 2
-				when :tl; 3
-				when :ql; 4
-				when :t1; (@board.letters_to_points[letter.upcase_pl]==1 ? 3 : 1)
-				when :t2; (@board.letters_to_points[letter.upcase_pl]==2 ? 3 : 1)
-				when :t3; (@board.letters_to_points[letter.upcase_pl]==3 ? 3 : 1)
-				when :t5; (@board.letters_to_points[letter.upcase_pl]==5 ? 3 : 1)
-				else;     1
-				end
+			letter_scores = []
+			word_multis = []
+			
+			# gather letter scores and multis
+			letters.each_with_index do |letter, ind|
+				letter_points = (@board.letters_to_points[letter]||0) # for blanks, represented as lowercase letters, this will be 0
+				row, col = *letter_position(ind)
 				
-				# for blanks, aka lowercase letters, this will be 0
-				(@board.letters_to_points[letter]||0) * (@board.multis_used[row][col] ? 1 :multi)
+				if @board.multis_used[row][col]
+					letter_scores << letter_points
+				else
+					multi_type = @board.boardtpl[row][col]
+					
+					letter_multi = case multi_type
+					when :dl; 2
+					when :tl; 3
+					when :ql; 4
+					when :t1; (letter_points==1 ? 3 : 1)
+					when :t2; (letter_points==2 ? 3 : 1)
+					when :t3; (letter_points==3 ? 3 : 1)
+					when :t5; (letter_points==5 ? 3 : 1)
+					else;     1
+					end
+					
+					word_multi = case multi_type
+					when :dw; 2
+					when :tw; 3
+					when :qw; 4
+					end
+					
+					letter_scores << letter_multi * letter_points
+					word_multis << word_multi if word_multi
+				end
 			end
 			
-			word_multis = letters.map.with_index do |letter, ind|
-				if @direction == :verti
-					row = @row + ind
-					col = @col
-				else
-					row = @row
-					col = @col + ind
-				end
-					
-				type = @board.boardtpl[row][col]
-				
-				@board.multis_used[row][col] ? 1 : (type==:dw ? 2 : type==:tw ? 3 : type==:qw ? 4 : 1)
-			end
-			
-			letter_scores.inject(&:+) * word_multis.inject(&:*)
+			# actually calculate word score
+			return letter_scores.inject(0, &:+) * word_multis.inject(1, &:*)
 		end
 	end
 	

@@ -405,8 +405,7 @@ module ScrabbleWeb
 						letts = []
 						entry.words.each do |word|
 							word.letters.each_with_index do |lett, i|
-								col = word.col + (word.direction == :verti ? 0 : i)
-								row = word.row + (word.direction == :verti ? i : 0)
+								row, col = *word.letter_position(i)
 								letts << [col, row, lett] unless @newgame.board.board[row][col]
 							end
 						end
