@@ -95,7 +95,7 @@ module ScrabbleWeb
 				end
 				
 				@asker_chat_len = @request['chat_len'].to_i
-				if @asker_chat_len == @game.chat.length
+				if @asker_chat_len == (@game.chat||[]).length
 					# nothing to update
 				else
 					chat = @game.chat[(@asker_chat_len)..-1]
