@@ -73,7 +73,8 @@ module ScrabbleWeb
 				out = []
 				
 				@asker_hist_len = @request['hist_len'].to_i
-				if @asker_hist_len == @game.history.length
+				if @asker_hist_len == @game.history.length and @asker_hist_len>@game.players.count
+					# force reload if the first round isnt over - update players join status
 					# nothing to update
 				else
 					board = @game.board.board
@@ -169,9 +170,25 @@ module ScrabbleWeb
 					@game = get_game @gamename
 				end
 				
+				
 				@pagetitle = @gamename
 				
 				@loggedinas = get_logged_in_player @gamename, @game
+				
+				
+				@need_resave = false
+				
+				if @loggedinas and !@loggedinas.joined
+					@loggedinas.joined = true
+					@need_resave = true
+				end
+				
+				if @game.over? and !@game.finished
+					res = @game.do_endgame_calculations
+					@need_resave = !!res
+				end
+				
+				put_game @gamename, @game if @need_resave
 				
 				return nil
 			end
@@ -180,13 +197,6 @@ module ScrabbleWeb
 				@gamename = gamename
 				err = common()
 				return err if err
-				
-				
-				if @game.over? and !@game.finished
-					res = @game.do_endgame_calculations
-					put_game @gamename, @game if res
-				end
-				
 				
 				render :game
 			rescue

@@ -174,6 +174,8 @@ module ScrabbleWeb
 						
 						p loc('Join password: ')+pl.password.to_s if @loggedinas and @loggedinas.admin
 						
+						p loc("(didn't join yet)") if !pl.joined and @loggedinas
+						
 						p loc('Points: ')+pl.points.to_s
 						
 						if @loggedinas == pl or @game.over?

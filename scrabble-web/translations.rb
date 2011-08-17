@@ -62,6 +62,7 @@ SCRABBLE_TRANSLATIONS = {
 		# _players
 		'Game admin' => 'Admin gry',
 		'Join password: ' => 'Hasło do dołączenia: ',
+		"(didn't join yet)" => '(jeszcze nie dołączył)',
 		'Points: ' => 'Punkty: ',
 		'Your letters: ' => 'Twoje litery: ',
 		'Letters left: ' => 'Liter: ',

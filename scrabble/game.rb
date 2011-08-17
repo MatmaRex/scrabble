@@ -12,9 +12,9 @@ module Scrabble
 	end
 	
 	class Player
-		attr_accessor :id, :name, :points, :letters, :password, :admin
+		attr_accessor :id, :name, :points, :letters, :password, :admin, :joined
 		def initialize opts
-			@id, @name, @points, @letters, @password, @admin = opts[:id], opts[:name], opts[:points], opts[:letters], opts[:password], opts[:admin]
+			@id, @name, @points, @letters, @password, @admin, @joined = opts[:id], opts[:name], opts[:points], opts[:letters], opts[:password], opts[:admin], opts[:joined]
 		end
 		def [] key
 			warn "Player#[]: #{caller[0]}"
@@ -53,6 +53,7 @@ module Scrabble
 					points: 0,
 					letters: [],
 					password: Rufus::Mnemo.from_integer(rand(1e6)),
+					joined: false,
 					admin: (whoisadmin == i)
 				)
 			end
