@@ -1,15 +1,5 @@
+* redo JS reloading - provide partials to replace, values to change; maybe use checksums?
+** return proper JSON with callback
+** use real AJAX calls
 
-
-OK:
-* premie 50
-* premie 2x itp tylko raz
-* poruszanie strzalkami po planszy
-* odswiezanie punktow graczy
-* slownik
-* historia gry
-* blanki
-* legenda
-* podswietlac graczy przy ruchu
-* ostatine slowo na planszy kolorem
-* podwojny pas
-* oznaczac zwyciezce
+* use some kind of before-after "controllers" to do endgame calcs, joins etc
