@@ -312,9 +312,9 @@ module ScrabbleWeb
 						
 						# the letters left in both racks are the ones exchanged
 						
-						ln << curr_rack.join('').downcase_pl.gsub('?', '_') + ':'
+						ln << curr_rack.join('').downcase_pl.gsub('?', '_')
 						ln << '->'
-						ln << next_rack.join('').downcase_pl.gsub('?', '_') + ':'
+						ln << next_rack.join('').downcase_pl.gsub('?', '_')
 					elsif entry.mode == :pass
 						ln << 'P'
 					elsif entry.mode == :adj
