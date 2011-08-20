@@ -353,7 +353,7 @@ module ScrabbleWeb
 				"hist_len = #{@game.history.length}",
 				"chat_len = #{@game.chat ? @game.chat.length : 0}",
 				"document.body.addEventListener('keypress', arrow_listener, true)",
-				!@game.over? ? "setInterval(scrabble_check, #{$production ? 3000 : 15000})" : ''
+				"setInterval(scrabble_check, #{$production ? 3000 : 15000})",
 			]
 			
 			script js.join('; '), type:'text/javascript'
