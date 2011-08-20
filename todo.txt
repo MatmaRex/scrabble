@@ -3,3 +3,9 @@
 ** use real AJAX calls
 
 * use some kind of before-after "controllers" to do endgame calcs, joins etc
+
+* rename all controllers to follow GameSomething patern; change urls to be /<gameid>/action
+
+* way to clear cookies
+
+* loc() with 2 args (string, data) and proc-translation - to allow for ex. wise pluralisation
