@@ -6,6 +6,7 @@ module ScrabbleWeb
 	module Controllers
 		class Favicon < R '/favicon.ico'; def get; @headers['content-type']='image/vnd.microsoft.icon'; File.binread './favicon.ico'; end; end
 		
+		# generic controllers
 		class Index
 			def get
 				@gamelist = get_list_of_games
@@ -22,6 +23,7 @@ module ScrabbleWeb
 			end
 		end
 		
+		# generic, somewhat game-related controllers
 		class NewGame < R '/new!'
 			def post
 				gamename = @request['gamename']
@@ -48,6 +50,158 @@ module ScrabbleWeb
 				else
 					return loc 'Only ASCII letters, numbers, underscore and hyphen (a-z, A-Z, 0-9, _, -) allowed in game names.'
 				end
+			rescue
+				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
+			end
+		end
+		
+		class JoinGame < R '/join!'
+			def post
+				@gamename, @password = @request['game'], @request['password']
+				
+				if !game_exist? @gamename
+					return loc 'No such game.'
+				else
+					@game = get_game @gamename
+				end
+				
+				as = @game.players.select{|pl| pl.password==@password}[0]
+				
+				if as
+					@cookies["game-#{@gamename}-playerid"] = {value: @game.players.index(as), expires:(Time.now+cookie_expiration_time)}
+					@cookies["game-#{@gamename}-password"] = {value: @password, expires:(Time.now+cookie_expiration_time)}
+					redirect "/#{@gamename}"
+				else
+					return loc 'Wrong password.'
+				end
+			rescue
+				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
+			end
+		end
+		
+		class Manage < R '/manage!'
+			def get
+				@gamelist = get_list_of_games
+				render :manage
+			end
+			
+			def post
+				return loc 'Wrong password.' if @request['pass']!='magicznehaslo'
+				
+				@deleted = []
+				
+				@request.params.each_pair do |gameinfo, checked|
+					if gameinfo =~ /-kill\Z/
+						_, gamename = *gameinfo.match(/\A(.+)-kill\Z/)
+						
+						if checked and checked!=''
+							delete_game gamename
+							@deleted << gamename
+						end
+					end
+				end
+				
+				@gamelist = get_list_of_games
+				render :manage
+			end
+		end
+		
+		# the meat. game controllers.
+		class Game < R '/([a-zA-Z0-9_-]+)'
+			def common
+				if !game_exist? @gamename
+					return loc 'No such game.'
+				else
+					@game = get_game @gamename
+				end
+				
+				
+				@pagetitle = @gamename
+				
+				@loggedinas = get_logged_in_player @gamename, @game
+				
+				
+				@need_resave = false
+				
+				if @loggedinas and !@loggedinas.joined
+					@loggedinas.joined = true
+					@need_resave = true
+				end
+				
+				if @game.over? and !@game.finished
+					res = @game.do_endgame_calculations
+					@need_resave = !!res
+				end
+				
+				put_game @gamename, @game if @need_resave
+				
+				return nil
+			end
+			
+			def get gamename
+				@gamename = gamename
+				err = common()
+				return err if err
+				
+				render :game
+			rescue
+				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
+			end
+			
+			def post gamename
+				@gamename = gamename
+				err = common()
+				return err if err
+				
+				return loc 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
+				return loc 'Game already over.' if @game.over?
+				
+				
+				if @request['mode'] == loc('OK')
+					letts = []
+					
+					@request.params.each_pair do |id, lett|
+						if id =~ /^\d+-\d+$/
+							row, col = id.split('-').map(&:to_i)
+							
+							if lett and lett!='' and @game.board[row][col]==nil
+								letts << [col, row, lett]
+							end
+						end
+					end
+					
+					blank_replac = (@request['blank_replac']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
+					
+					return loc 'You did nothing?' if letts.empty?
+					
+					begin
+						@game.do_move letts, blank_replac, @loggedinas.id
+					rescue Scrabble::WordError => e
+						if e.message =~ /^#060/
+							message = e.message.sub(/\A(#060 [^:]+: )(.+)\z/){loc($1) + $2}
+						else
+							message = loc(e.message)
+						end
+						
+						resp = [
+							loc('Incorrect move.'),
+							message.encode('utf-8'),
+							get(@gamename).to_s.encode('utf-8')
+						]
+						
+						return resp.join '<br />'
+					end
+				
+				elsif @request['mode'] == loc('Pass/Exchange')
+					ch = (@request['change']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
+					
+					@game.do_pass_or_change ch, @loggedinas.id
+				end
+				
+				put_game @gamename, @game
+				
+				redirect "/#{@gamename}"
+				
 			rescue
 				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
 			end
@@ -162,106 +316,6 @@ module ScrabbleWeb
 			end
 		end
 		
-		class Game < R '/([a-zA-Z0-9_-]+)'
-			def common
-				if !game_exist? @gamename
-					return loc 'No such game.'
-				else
-					@game = get_game @gamename
-				end
-				
-				
-				@pagetitle = @gamename
-				
-				@loggedinas = get_logged_in_player @gamename, @game
-				
-				
-				@need_resave = false
-				
-				if @loggedinas and !@loggedinas.joined
-					@loggedinas.joined = true
-					@need_resave = true
-				end
-				
-				if @game.over? and !@game.finished
-					res = @game.do_endgame_calculations
-					@need_resave = !!res
-				end
-				
-				put_game @gamename, @game if @need_resave
-				
-				return nil
-			end
-			
-			def get gamename
-				@gamename = gamename
-				err = common()
-				return err if err
-				
-				render :game
-			rescue
-				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
-			end
-			
-			def post gamename
-				@gamename = gamename
-				err = common()
-				return err if err
-				
-				return loc 'Not your turn.' if @loggedinas != @game.players[@game.whoseturn]
-				return loc 'Game already over.' if @game.over?
-				
-				
-				if @request['mode'] == loc('OK')
-					letts = []
-					
-					@request.params.each_pair do |id, lett|
-						if id =~ /^\d+-\d+$/
-							row, col = id.split('-').map(&:to_i)
-							
-							if lett and lett!='' and @game.board[row][col]==nil
-								letts << [col, row, lett]
-							end
-						end
-					end
-					
-					blank_replac = (@request['blank_replac']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
-					
-					return loc 'You did nothing?' if letts.empty?
-					
-					begin
-						@game.do_move letts, blank_replac, @loggedinas.id
-					rescue Scrabble::WordError => e
-						if e.message =~ /^#060/
-							message = e.message.sub(/\A(#060 [^:]+: )(.+)\z/){loc($1) + $2}
-						else
-							message = loc(e.message)
-						end
-						
-						resp = [
-							loc('Incorrect move.'),
-							message.encode('utf-8'),
-							get(@gamename).to_s.encode('utf-8')
-						]
-						
-						return resp.join '<br />'
-					end
-				
-				elsif @request['mode'] == loc('Pass/Exchange')
-					ch = (@request['change']||'').upcase_pl.split('').select{|l| @game.board.letters_to_points.include?(l) and l!='?'}
-					
-					@game.do_pass_or_change ch, @loggedinas.id
-				end
-				
-				put_game @gamename, @game
-				
-				redirect "/#{@gamename}"
-				
-			rescue
-				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
-			end
-		end
-		
 		class Kurnik < R '/txt!/([a-zA-Z0-9_-]+)'
 			def get gamename
 				@game = get_game gamename
@@ -334,57 +388,6 @@ module ScrabbleWeb
 				
 				@headers['content-type'] = 'text/plain'
 				lines.join "\n"
-			end
-		end
-		
-		class JoinGame < R '/join!'
-			def post
-				@gamename, @password = @request['game'], @request['password']
-				
-				if !game_exist? @gamename
-					return loc 'No such game.'
-				else
-					@game = get_game @gamename
-				end
-				
-				as = @game.players.select{|pl| pl.password==@password}[0]
-				
-				if as
-					@cookies["game-#{@gamename}-playerid"] = {value: @game.players.index(as), expires:(Time.now+cookie_expiration_time)}
-					@cookies["game-#{@gamename}-password"] = {value: @password, expires:(Time.now+cookie_expiration_time)}
-					redirect "/#{@gamename}"
-				else
-					return loc 'Wrong password.'
-				end
-			rescue
-				[$!.to_s, $!.backtrace].flatten.map{|a| a.force_encoding('cp1252')}.join "<br>"
-			end
-		end
-		
-		class Manage < R '/manage!'
-			def get
-				@gamelist = get_list_of_games
-				render :manage
-			end
-			
-			def post
-				return loc 'Wrong password.' if @request['pass']!='magicznehaslo'
-				
-				@deleted = []
-				
-				@request.params.each_pair do |gameinfo, checked|
-					if gameinfo =~ /-kill\Z/
-						_, gamename = *gameinfo.match(/\A(.+)-kill\Z/)
-						
-						if checked and checked!=''
-							delete_game gamename
-							@deleted << gamename
-						end
-					end
-				end
-				
-				@gamelist = get_list_of_games
-				render :manage
 			end
 		end
 		
