@@ -18,7 +18,7 @@ module ScrabbleWeb
 		
 		class Lang < R '/lang!/([a-z-]+)'
 			def get lang
-				@cookies['lang'] = {value: lang, expires:(Time.now+cookie_expiration_time)}
+				@cookies['lang'] = {value: lang, expires:(Time.now+cookie_expiration_time), path:'/'}
 				redirect '/'
 			end
 		end
