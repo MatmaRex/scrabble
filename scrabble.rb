@@ -26,7 +26,7 @@ def dict_check_pl word
 	response = RestClient.get 'http://www.sjp.pl/'+(CGI.escape word)
 	response = response.encode('ascii-8bit', :invalid => :replace, :undef => :replace) # heroku throws up on "invalid bytes"
 	
-	response =~ %r|<p style="margin: 0; color: green;"><b>dopuszczalne w grach</b></p>|
+	response =~ %r|<p[^>]*><b>dopuszczalne w grach</b></p>|
 end
 
 def dict_check_en word
