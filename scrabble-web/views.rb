@@ -49,11 +49,11 @@ module ScrabbleWeb
 				table do
 					tr do
 						td.prompt loc 'Game name (allowed letters, numbers, _, -):'
-						td.value{input.gamename!}
+						td.value{input name: 'gamename'}
 					end
 					tr do
 						td.prompt loc 'Player count (1-4):'
-						td.value{input.players!}
+						td.value{input name: 'players'}
 					end
 					tr do
 						td.prompt loc 'Player names (optional):'
@@ -65,7 +65,7 @@ module ScrabbleWeb
 					end
 					tr do
 						td.prompt loc 'I want to be player number (1-4, default 1):'
-						td.value{input.whoisadmin!}
+						td.value{input name: 'whoisadmin'}
 					end
 					tr do
 						td.prompt loc 'Game type:'
@@ -94,7 +94,7 @@ module ScrabbleWeb
 			end
 			
 			form method:'post', action:R(Manage) do
-				p{text loc 'Password: '; input.pass! type:'password'}
+				p{text loc 'Password: '; input name: 'pass', type:'password'}
 				
 				ul do
 					@gamelist.each do |gamename|
@@ -112,7 +112,7 @@ module ScrabbleWeb
 		
 		def rawdataask
 			form method:'post', action:R(RawData, @gamename) do
-				p{text loc 'Password: '; input.pass! type:'password'}
+				p{text loc 'Password: '; input name: 'pass', type:'password'}
 				input type:'submit', value:loc('Get raw data')
 			end
 		end
@@ -234,7 +234,7 @@ module ScrabbleWeb
 				if @game.board.board.flatten.include? '?'
 					form.getblank! method:'post', action:R(GetBlank, @gamename) do
 						text loc 'Swap a blank - provide its position: (for ex. B12) '
-						input.loc!
+						input name: 'loc'
 						input type:'submit'
 					end
 				end
@@ -286,7 +286,7 @@ module ScrabbleWeb
 						if @loggedinas.letters.include? '?'
 							br
 							text loc "If you're using a blank, which letter is it representing? "
-							input.blank_replac!
+							input name: 'blank_replac'
 							if @loggedinas.letters.count('?') > 1
 								text loc ' (if using more than one at once, type in all the letters in order the blanks appear, the topmost, leftmost ones first)'
 							end
@@ -298,7 +298,7 @@ module ScrabbleWeb
 						input type:'reset', value:loc('Redo')
 						
 						br
-						input.change!
+						input name: 'change'
 						text ' '
 						input name:'mode', type:'submit', value:loc('Pass/Exchange' )
 					end
@@ -313,7 +313,7 @@ module ScrabbleWeb
 			
 			if @loggedinas
 				form.chatform! method:'get', action:R(ChatPost, @gamename), onsubmit:'chat_post(); return false' do
-					input.msg!
+					input name: 'msg'
 					input type:'submit', value:loc('Say')
 				end
 			end
@@ -343,8 +343,8 @@ module ScrabbleWeb
 			
 			if !@loggedinas and !@game.over?
 				form.joingame! method:'post', action:R(JoinGame) do
-					input.game! type:'hidden', value:@gamename
-					text loc 'Join this game - password: '; input.password!
+					input name: 'game', type:'hidden', value:@gamename
+					text loc 'Join this game - password: '; input name: 'password'
 					input type:'submit'
 				end
 			end
