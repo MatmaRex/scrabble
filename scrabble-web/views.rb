@@ -13,6 +13,7 @@ module ScrabbleWeb
 			
 			html do
 				head do
+					meta charset: 'utf-8'
 					title titlebits.select{|bit| bit and bit!=''}.join ' - '
 					
 					link rel:'stylesheet', type:'text/css', href:'/static/style.css'
