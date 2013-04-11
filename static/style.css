@@ -10,7 +10,7 @@ body, input{font-family:tahoma, arial, verdana, sans-serif}
 #board input.enab{text-transform:uppercase}
 #board input.disab{text-transform:none}
 
-#board input, .rackletter, .boardloc{margin:1px; width:30px; height:30px}
+#board input, .rackletter, .boardloc{box-sizing:border-box; margin:1px; width:30px; height:30px}
 #board input, .boardloc{display:block; float:left}
 .boardloc{text-align:center; font-size:15px; line-height:30px}
 
